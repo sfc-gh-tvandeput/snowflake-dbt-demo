@@ -109,10 +109,19 @@ models:
       relation: true
       columns: true
 
-    # MEDALLION ARCHITECTURE WITH INTEGRATED BEST PRACTICES
+    # DATA VAULT 2.0 ARCHITECTURE
+    # Staging Layer - AutomateDV staging models
+    staging:
+      +tags: ["data_vault", "staging"]
+      +schema: staging
+      +materialized: ephemeral # Best practice: staging as ephemeral for performance
+      tpc_h:
+        +tags: ["tpc_h", "source"]
+
+    # MEDALLION ARCHITECTURE WITH INTEGRATED BEST PRACTICES (LEGACY)
     # Bronze Layer - Staging models + raw data patterns
     bronze:
-      +tags: ["bronze", "staging", "raw_data"]
+      +tags: ["bronze", "staging", "raw_data", "legacy"]
       +schema: bronze
       +materialized: ephemeral # Best practice: staging as ephemeral for performance
       crawl:
