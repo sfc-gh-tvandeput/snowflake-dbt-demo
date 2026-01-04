@@ -34,6 +34,9 @@ derived_columns:
 hashed_columns:
     ORDER_HK: "O_ORDERKEY"
     CUSTOMER_HK: "O_CUSTKEY"
+    CUSTOMER_ORDER_HK:
+        - "O_CUSTKEY"
+        - "O_ORDERKEY"
     ORDER_HASHDIFF:
         is_hashdiff: true
         columns:

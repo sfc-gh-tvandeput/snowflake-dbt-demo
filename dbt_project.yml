@@ -118,6 +118,21 @@ models:
       tpc_h:
         +tags: ["tpc_h", "source"]
 
+    # Raw Data Vault - Hubs, Links, Satellites
+    rdv:
+      +tags: ["data_vault", "rdv"]
+      +schema: rdv
+      +materialized: incremental # Best practice: RDV as incremental
+      hubs:
+        +tags: ["hub"]
+        +materialized: incremental
+      links:
+        +tags: ["link"]
+        +materialized: incremental
+      satellites:
+        +tags: ["satellite"]
+        +materialized: incremental
+
     # MEDALLION ARCHITECTURE WITH INTEGRATED BEST PRACTICES (LEGACY)
     # Bronze Layer - Staging models + raw data patterns
     bronze:
@@ -200,9 +215,11 @@ snapshots:
     +tags: ["snapshots", "scd"]
 
 tests:
-  # You can set custom properties on tests that will be stored in the dbt logs
   +meta:
     owner: "Dan Flippo"
     owner_email: "test@nowhere.com"
-#  +limit: 1000 # will only include the first 1000 failures
-#  +store_failures: true # by default we will store failures
+  +store_failures: true
+  +limit: 1000
+  snowflake_demo:
+    unit:
+      +tags: ["unit_test"]
