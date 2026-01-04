@@ -54,6 +54,16 @@ vars:
   default_updated_at_column: dbt_updated_ts
   default_inserted_at_column: dbt_inserted_ts
 
+  # AutomateDV configuration for Data Vault 2.0
+  hash: "MD5" # Hash algorithm: MD5, SHA1, or SHA
+  concat_string: "||" # Delimiter for concatenating columns
+  null_placeholder_string: "^^" # Placeholder for NULL values in hashing
+  hash_content_casing: "UPPER" # Normalize casing: UPPER or DISABLED
+  enable_ghost_records: false # Ghost records for PIT table optimization
+  system_record_value: "AUTOMATE_DV_SYSTEM" # Source system for ghost records
+  null_key_required: "-1" # NULL placeholder for required keys
+  null_key_optional: "-2" # NULL placeholder for optional keys
+
   # dbt-project-evaluator configuration
   dbt_project_evaluator:
     # Configure primary key test recognition for dbt_constraints package
