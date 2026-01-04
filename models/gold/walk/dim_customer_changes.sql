@@ -2,9 +2,12 @@
     config(
         materialized="incremental",
         transient=false,
-        alias='DIM_CUSTOMER_CHANGES'
+        alias='DIM_CUSTOMER_CHANGES',
+        static_analysis='unsafe',
+        enabled=false
     )
 }}
+{# Disabled due to dbt Fusion stream analysis limitations #}
 /*
 Log of changes made to the DIM_CUSTOMERS table utilizing a stream
  */

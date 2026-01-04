@@ -12,7 +12,6 @@
     post_hook=[ "{%- do insert_ghost_key( 'o_order_wid', 0,
         {'O_CUST_WID': '0'}
     ) -%}" ],
-    surrogate_key = "o_order_wid",
     alias='DIM_ORDERS_INCREMENTAL_MACRO'
     )
 }}
@@ -46,4 +45,4 @@ WHERE O_ORDERDATE >= DATEADD(DAY, -90, SYSDATE() )
 
 {% endset -%}
 
-{{- get_scd_sql(scd_source_sql) -}}
+{{- get_scd_sql(scd_source_sql, surrogate_key='o_order_wid') -}}

@@ -1,6 +1,6 @@
 /*
     dbt Feature Demonstration: INCREMENTAL MODEL WITH CUSTOM MACROS
-    
+
     This model demonstrates:
     - ✅ Incremental materialization with SCD Type 2
     - ✅ Custom macro usage (insert_ghost_key, get_scd_sql)
@@ -10,7 +10,7 @@
     - ✅ Surrogate key generation
     - ✅ Ghost key insertion for unknown records
     - ✅ Complex Jinja templating
-    
+
     Complexity: 🥇 RUN (Advanced)
     Layer: Gold - Advanced Incremental Patterns
 */
@@ -32,7 +32,6 @@
          'has_orders_flag': \"'N'\",
          'has_open_orders_flag': \"'N'\"}
     ) -%}" ],
-    surrogate_key = "customer_surrogate_key",
     alias='DIM_CUSTOMERS_INCREMENTAL_MACRO'
     )
 }}
@@ -67,4 +66,4 @@
 
 {%- endset -%}
 
-{{ get_scd_sql(scd_source_sql) }}
+{{ get_scd_sql(scd_source_sql, surrogate_key='customer_surrogate_key') }}
