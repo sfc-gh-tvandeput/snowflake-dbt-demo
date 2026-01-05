@@ -8,7 +8,7 @@ source_model:
 
 derived_columns:
     RECORD_SOURCE: "!TPC_H"
-    LOAD_DATE: "CURRENT_TIMESTAMP()"
+    LOAD_DATE: "DATE('1992-01-01')"
     NATION_KEY: "N_NATIONKEY"
     REGION_KEY: "N_REGIONKEY"
     NATION_NAME: "N_NAME"

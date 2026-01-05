@@ -1,4 +1,5 @@
 {{ config(
+    materialized='ephemeral',
     tags=['staging', 'tpc_h', 'data_vault']
 ) }}
 
@@ -8,7 +9,7 @@ source_model:
 
 derived_columns:
     RECORD_SOURCE: "!TPC_H"
-    LOAD_DATE: "CURRENT_TIMESTAMP()"
+    LOAD_DATE: "DATE('1992-01-01')"
     PART_KEY: "P_PARTKEY"
     PART_NAME: "P_NAME"
     MANUFACTURER: "P_MFGR"

@@ -1,4 +1,5 @@
 {{ config(
+    materialized='ephemeral',
     tags=['staging', 'tpc_h', 'data_vault']
 ) }}
 
@@ -19,7 +20,7 @@ source_model:
 
 derived_columns:
     RECORD_SOURCE: "!TPC_H"
-    LOAD_DATE: "CURRENT_TIMESTAMP()"
+    LOAD_DATE: "O_ORDERDATE"
     ORDER_KEY: "O_ORDERKEY"
     CUSTOMER_KEY: "O_CUSTKEY"
     ORDER_STATUS: "O_ORDERSTATUS"

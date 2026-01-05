@@ -8,7 +8,7 @@ source_model:
 
 derived_columns:
     RECORD_SOURCE: "!TPC_H"
-    LOAD_DATE: "CURRENT_TIMESTAMP()"
+    LOAD_DATE: "DATE('1992-01-01')"
     SUPPLIER_KEY: "S_SUPPKEY"
     SUPPLIER_NAME: "S_NAME"
     SUPPLIER_ADDRESS: "S_ADDRESS"

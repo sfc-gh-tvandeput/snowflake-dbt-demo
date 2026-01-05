@@ -8,7 +8,7 @@ source_model:
 
 derived_columns:
     RECORD_SOURCE: "!TPC_H"
-    LOAD_DATE: "CURRENT_TIMESTAMP()"
+    LOAD_DATE: "L_SHIPDATE"
     ORDER_KEY: "L_ORDERKEY"
     LINE_NUMBER: "L_LINENUMBER"
     PART_KEY: "L_PARTKEY"

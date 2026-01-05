@@ -1,0 +1,190 @@
+version: 2
+
+models:
+  - name: pit_customer
+    description: |
+      **Business Data Vault: Point-In-Time Customer Snapshot**
+
+      Pre-calculated snapshots of customer state at specific points in time.
+      Joins HUB_CUSTOMER with SAT_CUSTOMER for each AS_OF_DATE.
+
+      **Pattern**: Point-In-Time (PIT) table (Data Vault 2.0)
+      **Purpose**: Performance optimization for temporal queries
+      **Grain**: One row per customer per as_of_date
+      **Parent Hub**: HUB_CUSTOMER
+      **Satellites**: SAT_CUSTOMER
+      **Load Strategy**: Incremental (remade with each new AS_OF_DATE)
+
+      **Use Case**:
+      Instead of complex temporal joins in queries, use PIT table for fast equi-joins:
+      ```sql
+      SELECT c.customer_name, c.account_balance
+      FROM pit_customer p
+      JOIN hub_customer h ON p.customer_hk = h.customer_hk
+      JOIN sat_customer c ON p.sat_customer_pk = c.customer_hk
+                          AND p.sat_customer_ldts = c.load_date
+      WHERE p.as_of_date = '2024-01-15'
+      ```
+
+      **Performance Benefit**: Eliminates expensive temporal range joins
+    meta:
+      owner: "Data Engineering Team"
+      layer: "bdv"
+      entity_type: "pit"
+
+    columns:
+      - name: customer_hk
+        description: "Primary key from HUB_CUSTOMER"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: as_of_date
+        description: "Snapshot date from AS_OF_DATE seed table"
+        data_type: date
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: sat_customer_pk
+        description: "Hash key pointer to SAT_CUSTOMER record valid at as_of_date"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: warn
+
+      - name: sat_customer_ldts
+        description: "Load date of SAT_CUSTOMER record valid at as_of_date"
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: warn
+
+  - name: pit_order
+    description: |
+      **Business Data Vault: Point-In-Time Order Snapshot**
+
+      Pre-calculated snapshots of order state at specific points in time.
+      Joins HUB_ORDER with SAT_ORDER for each AS_OF_DATE.
+
+      **Pattern**: Point-In-Time (PIT) table (Data Vault 2.0)
+      **Purpose**: Performance optimization for temporal queries
+      **Grain**: One row per order per as_of_date
+      **Parent Hub**: HUB_ORDER
+      **Satellites**: SAT_ORDER
+      **Load Strategy**: Incremental (remade with each new AS_OF_DATE)
+
+      **Use Case**:
+      Track order status changes over time efficiently:
+      ```sql
+      SELECT o.order_status, o.total_price
+      FROM pit_order p
+      JOIN hub_order h ON p.order_hk = h.order_hk
+      JOIN sat_order o ON p.sat_order_pk = o.order_hk
+                       AND p.sat_order_ldts = o.load_date
+      WHERE p.as_of_date = '2024-01-15'
+      ```
+    meta:
+      owner: "Data Engineering Team"
+      layer: "bdv"
+      entity_type: "pit"
+
+    columns:
+      - name: order_hk
+        description: "Primary key from HUB_ORDER"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: as_of_date
+        description: "Snapshot date from AS_OF_DATE seed table"
+        data_type: date
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: sat_order_pk
+        description: "Hash key pointer to SAT_ORDER record valid at as_of_date"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: warn
+
+      - name: sat_order_ldts
+        description: "Load date of SAT_ORDER record valid at as_of_date"
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: warn
+
+  - name: pit_product
+    description: |
+      **Business Data Vault: Point-In-Time Product Snapshot**
+
+      Pre-calculated snapshots of product state at specific points in time.
+      Joins HUB_PRODUCT with SAT_PRODUCT for each AS_OF_DATE.
+
+      **Pattern**: Point-In-Time (PIT) table (Data Vault 2.0)
+      **Purpose**: Performance optimization for temporal queries
+      **Grain**: One row per product per as_of_date
+      **Parent Hub**: HUB_PRODUCT
+      **Satellites**: SAT_PRODUCT
+      **Load Strategy**: Incremental (remade with each new AS_OF_DATE)
+
+      **Use Case**:
+      Analyze product pricing changes over time:
+      ```sql
+      SELECT p.part_name, p.retail_price
+      FROM pit_product pt
+      JOIN hub_product h ON pt.part_hk = h.part_hk
+      JOIN sat_product p ON pt.sat_product_pk = p.part_hk
+                         AND pt.sat_product_ldts = p.load_date
+      WHERE pt.as_of_date = '2024-01-15'
+      ```
+    meta:
+      owner: "Data Engineering Team"
+      layer: "bdv"
+      entity_type: "pit"
+
+    columns:
+      - name: part_hk
+        description: "Primary key from HUB_PRODUCT"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: as_of_date
+        description: "Snapshot date from AS_OF_DATE seed table"
+        data_type: date
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: sat_product_pk
+        description: "Hash key pointer to SAT_PRODUCT record valid at as_of_date"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: warn
+
+      - name: sat_product_ldts
+        description: "Load date of SAT_PRODUCT record valid at as_of_date"
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: warn

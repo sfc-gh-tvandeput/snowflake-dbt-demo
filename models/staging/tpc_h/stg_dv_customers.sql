@@ -8,7 +8,7 @@ source_model:
 
 derived_columns:
     RECORD_SOURCE: "!TPC_H"
-    LOAD_DATE: "CURRENT_TIMESTAMP()"
+    LOAD_DATE: "DATE('1992-01-01')"
     CUSTOMER_KEY: "C_CUSTKEY"
     CUSTOMER_NAME: "C_NAME"
     CUSTOMER_ADDRESS: "C_ADDRESS"
