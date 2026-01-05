@@ -1,0 +1,206 @@
+version: 2
+
+unit_tests:
+  - name: test_price_calculations
+    model: sat_lineitem_enriched
+    description: "Test net_price, total_price, discount_amount, and tax_amount calculations"
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('hub_lineitem')
+        rows:
+          - { lineitem_hk: "01" }
+          - { lineitem_hk: "02" }
+          - { lineitem_hk: "03" }
+      - input: ref('sat_lineitem')
+        rows:
+          - { lineitem_hk: "01", quantity: 10, extended_price: 1000.00, discount: 0.05, tax: 0.08 }
+          - { lineitem_hk: "02", quantity: 20, extended_price: 2000.00, discount: 0.10, tax: 0.08 }
+          - { lineitem_hk: "03", quantity: 30, extended_price: 3000.00, discount: 0.00, tax: 0.08 }
+      - input: ref('link_lineitem_product')
+        rows: []
+      - input: ref('hub_product')
+        rows: []
+      - input: ref('sat_product')
+        rows: []
+    expect:
+      rows:
+        - {
+            original_price: 1000.00,
+            net_price: 950.00,
+            total_price: 1026.00,
+            discount_amount: 50.00,
+            tax_amount: 76.00,
+          }
+        - {
+            original_price: 2000.00,
+            net_price: 1800.00,
+            total_price: 1944.00,
+            discount_amount: 200.00,
+            tax_amount: 144.00,
+          }
+        - {
+            original_price: 3000.00,
+            net_price: 3000.00,
+            total_price: 3240.00,
+            discount_amount: 0.00,
+            tax_amount: 240.00,
+          }
+
+  - name: test_delivery_performance_classification
+    model: sat_lineitem_enriched
+    description: "Test delivery_performance (ON_TIME, SLIGHTLY_LATE, LATE) and days_early_late"
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('hub_lineitem')
+        rows:
+          - { lineitem_hk: "AA" }
+          - { lineitem_hk: "BB" }
+          - { lineitem_hk: "CC" }
+          - { lineitem_hk: "DD" }
+      - input: ref('sat_lineitem')
+        rows:
+          - {
+              lineitem_hk: "AA",
+              quantity: 10,
+              extended_price: 1000.00,
+              discount: 0.05,
+              tax: 0.08,
+              ship_date: "1992-01-18",
+              commit_date: "1992-01-20",
+            }
+          - {
+              lineitem_hk: "BB",
+              quantity: 20,
+              extended_price: 2000.00,
+              discount: 0.10,
+              tax: 0.08,
+              ship_date: "1992-02-20",
+              commit_date: "1992-02-20",
+            }
+          - {
+              lineitem_hk: "CC",
+              quantity: 30,
+              extended_price: 3000.00,
+              discount: 0.00,
+              tax: 0.08,
+              ship_date: "1992-03-22",
+              commit_date: "1992-03-20",
+            }
+          - {
+              lineitem_hk: "DD",
+              quantity: 40,
+              extended_price: 4000.00,
+              discount: 0.00,
+              tax: 0.08,
+              ship_date: "1992-04-25",
+              commit_date: "1992-04-20",
+            }
+      - input: ref('link_lineitem_product')
+        rows: []
+      - input: ref('hub_product')
+        rows: []
+      - input: ref('sat_product')
+        rows: []
+    expect:
+      rows:
+        - { days_early_late: -2, delivery_performance: ON_TIME }
+        - { days_early_late: 0, delivery_performance: ON_TIME }
+        - { days_early_late: 2, delivery_performance: SLIGHTLY_LATE }
+        - { days_early_late: 5, delivery_performance: LATE }
+
+  - name: test_return_status_mapping
+    model: sat_lineitem_enriched
+    description: "Test return_status mapping (RETURNED, ACCEPTED, NOT_RETURNED)"
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('hub_lineitem')
+        rows:
+          - { lineitem_hk: "F1" }
+          - { lineitem_hk: "F2" }
+          - { lineitem_hk: "F3" }
+      - input: ref('sat_lineitem')
+        rows:
+          - {
+              lineitem_hk: "F1",
+              quantity: 10,
+              extended_price: 1000.00,
+              discount: 0.05,
+              tax: 0.08,
+              return_flag: "R",
+              line_status: "F",
+            }
+          - {
+              lineitem_hk: "F2",
+              quantity: 20,
+              extended_price: 2000.00,
+              discount: 0.10,
+              tax: 0.08,
+              return_flag: "A",
+              line_status: "F",
+            }
+          - {
+              lineitem_hk: "F3",
+              quantity: 30,
+              extended_price: 3000.00,
+              discount: 0.00,
+              tax: 0.08,
+              return_flag: "N",
+              line_status: "O",
+            }
+      - input: ref('link_lineitem_product')
+        rows: []
+      - input: ref('hub_product')
+        rows: []
+      - input: ref('sat_product')
+        rows: []
+    expect:
+      rows:
+        - { l_returnflag: R, return_status: RETURNED, line_status_description: FULFILLED }
+        - { l_returnflag: A, return_status: ACCEPTED, line_status_description: FULFILLED }
+        - { l_returnflag: N, return_status: NOT_RETURNED, line_status_description: OUTSTANDING }
+
+  - name: test_line_status_description_mapping
+    model: sat_lineitem_enriched
+    description: "Test line_status_description mapping (OUTSTANDING, FULFILLED)"
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('hub_lineitem')
+        rows:
+          - { lineitem_hk: "11" }
+          - { lineitem_hk: "22" }
+      - input: ref('sat_lineitem')
+        rows:
+          - {
+              lineitem_hk: "11",
+              quantity: 10,
+              extended_price: 1000.00,
+              discount: 0.05,
+              tax: 0.08,
+              line_status: "O",
+            }
+          - {
+              lineitem_hk: "22",
+              quantity: 20,
+              extended_price: 2000.00,
+              discount: 0.10,
+              tax: 0.08,
+              line_status: "F",
+            }
+      - input: ref('link_lineitem_product')
+        rows: []
+      - input: ref('hub_product')
+        rows: []
+      - input: ref('sat_product')
+        rows: []
+    expect:
+      rows:
+        - { l_linestatus: O, line_status_description: OUTSTANDING }
+        - { l_linestatus: F, line_status_description: FULFILLED }

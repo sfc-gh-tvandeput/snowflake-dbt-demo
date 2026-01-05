@@ -1,0 +1,246 @@
+version: 2
+
+unit_tests:
+  - name: test_order_status_desc_mapping
+    model: sat_order_calculated
+    description: "Test order_status_desc mapping for all status values (O, F, P)"
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('hub_order')
+        rows:
+          - { order_hk: "01" }
+          - { order_hk: "02" }
+          - { order_hk: "03" }
+      - input: ref('sat_order')
+        rows:
+          - {
+              order_hk: "01",
+              order_status: "O",
+              order_priority: "1-URGENT",
+              order_date: "1992-01-15",
+            }
+          - {
+              order_hk: "02",
+              order_status: "F",
+              order_priority: "2-HIGH",
+              order_date: "1992-02-20",
+            }
+          - {
+              order_hk: "03",
+              order_status: "P",
+              order_priority: "3-MEDIUM",
+              order_date: "1992-03-10",
+            }
+      - input: ref('link_lineitem_order')
+        rows: []
+      - input: ref('hub_lineitem')
+        rows: []
+      - input: ref('sat_lineitem')
+        rows: []
+    expect:
+      rows:
+        - { order_status: "O", order_status_desc: Open, priority_level: Urgent }
+        - { order_status: "F", order_status_desc: Fulfilled, priority_level: High }
+        - { order_status: "P", order_status_desc: Partial, priority_level: Medium }
+
+  - name: test_date_dimension_extraction
+    model: sat_order_calculated
+    description: "Test date dimension fields (order_year, order_quarter, order_month)"
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('hub_order')
+        rows:
+          - { order_hk: "AA" }
+          - { order_hk: "BB" }
+          - { order_hk: "CC" }
+          - { order_hk: "DD" }
+      - input: ref('sat_order')
+        rows:
+          - {
+              order_hk: "AA",
+              order_status: "O",
+              order_priority: "1-URGENT",
+              order_date: "1992-01-15",
+            }
+          - {
+              order_hk: "BB",
+              order_status: "F",
+              order_priority: "2-HIGH",
+              order_date: "1992-04-20",
+            }
+          - {
+              order_hk: "CC",
+              order_status: "P",
+              order_priority: "3-MEDIUM",
+              order_date: "1992-09-10",
+            }
+          - {
+              order_hk: "DD",
+              order_status: "O",
+              order_priority: "4-NOT SPECIFIED",
+              order_date: "1992-12-31",
+            }
+      - input: ref('link_lineitem_order')
+        rows: []
+      - input: ref('hub_lineitem')
+        rows: []
+      - input: ref('sat_lineitem')
+        rows: []
+    expect:
+      rows:
+        - { order_date: "1992-01-15", order_year: 1992, order_quarter: 1, order_month: 1 }
+        - { order_date: "1992-04-20", order_year: 1992, order_quarter: 2, order_month: 4 }
+        - { order_date: "1992-09-10", order_year: 1992, order_quarter: 3, order_month: 9 }
+        - { order_date: "1992-12-31", order_year: 1992, order_quarter: 4, order_month: 12 }
+
+  - name: test_priority_level_classification
+    model: sat_order_calculated
+    description: "Test priority_level classification for all priority values"
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('hub_order')
+        rows:
+          - { order_hk: "F1" }
+          - { order_hk: "F2" }
+          - { order_hk: "F3" }
+          - { order_hk: "F4" }
+          - { order_hk: "F5" }
+      - input: ref('sat_order')
+        rows:
+          - {
+              order_hk: "F1",
+              order_status: "O",
+              order_priority: "1-URGENT",
+              order_date: "1992-01-15",
+            }
+          - {
+              order_hk: "F2",
+              order_status: "F",
+              order_priority: "2-HIGH",
+              order_date: "1992-02-20",
+            }
+          - {
+              order_hk: "F3",
+              order_status: "P",
+              order_priority: "3-MEDIUM",
+              order_date: "1992-03-10",
+            }
+          - {
+              order_hk: "F4",
+              order_status: "O",
+              order_priority: "4-NOT SPECIFIED",
+              order_date: "1992-04-05",
+            }
+          - { order_hk: "F5", order_status: "F", order_priority: "5-LOW", order_date: "1992-05-12" }
+      - input: ref('link_lineitem_order')
+        rows: []
+      - input: ref('hub_lineitem')
+        rows: []
+      - input: ref('sat_lineitem')
+        rows: []
+    expect:
+      rows:
+        - { order_priority: "1-URGENT", priority_level: Urgent }
+        - { order_priority: "2-HIGH", priority_level: High }
+        - { order_priority: "3-MEDIUM", priority_level: Medium }
+        - { order_priority: "4-NOT SPECIFIED", priority_level: Low }
+        - { order_priority: "5-LOW", priority_level: Low }
+
+  - name: test_line_item_aggregations
+    model: sat_order_calculated
+    description:
+      "Test line item aggregations (total_quantity, line_item_count, amounts) and fulfillment_speed"
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('hub_order')
+        rows:
+          - { order_hk: "AA" }
+          - { order_hk: "BB" }
+          - { order_hk: "CC" }
+      - input: ref('sat_order')
+        rows:
+          - { order_hk: "AA", order_status: "O", order_date: "1992-01-15" }
+          - { order_hk: "BB", order_status: "F", order_date: "1992-02-01" }
+          - { order_hk: "CC", order_status: "F", order_date: "1992-03-01" }
+      - input: ref('link_lineitem_order')
+        rows:
+          - { order_hk: "AA", lineitem_hk: "D1" }
+          - { order_hk: "AA", lineitem_hk: "D2" }
+          - { order_hk: "AA", lineitem_hk: "D3" }
+          - { order_hk: "BB", lineitem_hk: "E1" }
+          - { order_hk: "CC", lineitem_hk: "F1" }
+      - input: ref('hub_lineitem')
+        rows:
+          - { lineitem_hk: "D1", line_number: 1 }
+          - { lineitem_hk: "D2", line_number: 2 }
+          - { lineitem_hk: "D3", line_number: 3 }
+          - { lineitem_hk: "E1", line_number: 1 }
+          - { lineitem_hk: "F1", line_number: 1 }
+      - input: ref('sat_lineitem')
+        rows:
+          - {
+              lineitem_hk: "D1",
+              quantity: 10,
+              extended_price: 1000.00,
+              discount: 0.05,
+              ship_date: "1992-01-20",
+            }
+          - {
+              lineitem_hk: "D2",
+              quantity: 20,
+              extended_price: 2000.00,
+              discount: 0.10,
+              ship_date: "1992-01-21",
+            }
+          - {
+              lineitem_hk: "D3",
+              quantity: 30,
+              extended_price: 3000.00,
+              discount: 0.00,
+              ship_date: "1992-01-25",
+            }
+          - {
+              lineitem_hk: "E1",
+              quantity: 5,
+              extended_price: 500.00,
+              discount: 0.00,
+              ship_date: "1992-02-06",
+            }
+          - {
+              lineitem_hk: "F1",
+              quantity: 15,
+              extended_price: 1500.00,
+              discount: 0.05,
+              ship_date: "1992-03-10",
+            }
+    expect:
+      rows:
+        - {
+            total_quantity: 60,
+            line_item_count: 3,
+            total_extended_price: 6000.00,
+            fulfillment_span_days: 5,
+            fulfillment_speed: Fast,
+          }
+        - {
+            total_quantity: 5,
+            line_item_count: 1,
+            total_extended_price: 500.00,
+            fulfillment_span_days: 0,
+            fulfillment_speed: Fast,
+          }
+        - {
+            total_quantity: 15,
+            line_item_count: 1,
+            total_extended_price: 1500.00,
+            fulfillment_span_days: 0,
+            fulfillment_speed: Normal,
+          }

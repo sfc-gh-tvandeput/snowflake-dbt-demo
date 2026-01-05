@@ -1,0 +1,340 @@
+version: 2
+
+models:
+  - name: sat_customer_derived
+    description: |
+      **Business Data Vault: Customer Derived Attributes**
+
+      Calculated business metrics and customer segmentation derived from order history.
+
+      **Pattern**: Business Satellite (Data Vault 2.0)
+      **Source**: RDV hubs, links, and satellites
+      **Purpose**: Customer lifetime value and behavioral segmentation
+      **Grain**: One row per customer (latest state)
+
+      **Business Logic**:
+      - **Lifetime Value**: Total spent, order count, average order value
+      - **Customer Segmentation**: VIP, HIGH_VALUE, MEDIUM_VALUE, LOW_VALUE, PROSPECT
+      - **Customer Status**: ACTIVE, AT_RISK, CHURNED, NEVER_ORDERED
+      - **Recency**: Days since last order
+      - **Frequency**: Orders per year
+
+    columns:
+      - name: customer_hk
+        description: Customer hash key (FK to HUB_CUSTOMER)
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('hub_customer')
+              field: customer_hk
+
+      - name: customer_derived_hashdiff
+        description: Hash difference for change detection
+        data_tests:
+          - not_null
+
+      - name: total_spent
+        description: Total lifetime spending (all orders, net of discounts)
+
+      - name: total_orders
+        description: Total number of orders placed
+
+      - name: avg_order_value
+        description: Average order value
+
+      - name: first_order_date
+        description: Date of first order
+
+      - name: last_order_date
+        description: Date of most recent order
+
+      - name: customer_tenure_days
+        description: Days between first and last order
+
+      - name: orders_per_year
+        description: Annualized order frequency
+
+      - name: customer_segment
+        description: |
+          Customer value segment:
+          - VIP: >= $500K lifetime value
+          - HIGH_VALUE: >= $200K lifetime value
+          - MEDIUM_VALUE: >= $50K lifetime value
+          - LOW_VALUE: > $0 lifetime value
+          - PROSPECT: No orders yet
+        data_tests:
+          - accepted_values:
+              values: ["VIP", "HIGH_VALUE", "MEDIUM_VALUE", "LOW_VALUE", "PROSPECT"]
+
+      - name: customer_status
+        description: |
+          Customer engagement status:
+          - ACTIVE: Ordered within 90 days
+          - AT_RISK: Last order 90-365 days ago
+          - CHURNED: Last order > 365 days ago
+          - NEVER_ORDERED: No orders
+        data_tests:
+          - accepted_values:
+              values: ["ACTIVE", "AT_RISK", "CHURNED", "NEVER_ORDERED"]
+
+      - name: load_date
+        description: Data vault load timestamp
+        data_tests:
+          - not_null
+
+      - name: record_source
+        description: Source system identifier
+        data_tests:
+          - accepted_values:
+              values: ["DERIVED"]
+
+  - name: sat_order_calculated
+    description: |
+      **Business Data Vault: Order Calculated Metrics**
+
+      Aggregated line item metrics and order fulfillment analytics.
+
+      **Pattern**: Business Satellite (Data Vault 2.0)
+      **Source**: RDV hubs, links, and satellites
+      **Purpose**: Order-level calculations for analytics and reporting
+      **Grain**: One row per order (latest state)
+
+      **Business Logic**:
+      - **Financial Metrics**: Extended price, discounts, taxes, net amount
+      - **Order Composition**: Line item count, total quantity
+      - **Fulfillment**: Days to ship, fulfillment speed classification
+      - **Status Translation**: Human-readable order status and priority
+
+    columns:
+      - name: order_hk
+        description: Order hash key (FK to HUB_ORDER)
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('hub_order')
+              field: order_hk
+
+      - name: order_calculated_hashdiff
+        description: Hash difference for change detection
+        data_tests:
+          - not_null
+
+      - name: total_quantity
+        description: Total quantity across all line items
+
+      - name: line_item_count
+        description: Number of distinct line items in order
+
+      - name: total_extended_price
+        description: Sum of extended prices before discounts
+
+      - name: total_discount_amount
+        description: Total discount amount
+
+      - name: total_tax_amount
+        description: Total tax amount
+
+      - name: net_amount
+        description: Total after discounts, before tax
+
+      - name: total_amount
+        description: Final order total (after discounts and tax)
+
+      - name: avg_line_price
+        description: Average line item price
+
+      - name: first_ship_date
+        description: Date of first shipment
+
+      - name: last_ship_date
+        description: Date of last shipment
+
+      - name: fulfillment_span_days
+        description: Days between first and last shipment
+
+      - name: order_status_description
+        description: |
+          Human-readable order status:
+          - OPEN: Order not yet fulfilled
+          - FULFILLED: All items shipped
+          - PARTIALLY_FULFILLED: Some items shipped
+        data_tests:
+          - accepted_values:
+              values: ["OPEN", "FULFILLED", "PARTIALLY_FULFILLED", "UNKNOWN"]
+
+      - name: priority_level
+        description: |
+          Simplified priority:
+          - URGENT: 1-URGENT
+          - HIGH: 2-HIGH
+          - MEDIUM: 3-MEDIUM
+          - LOW: 4-NOT SPECIFIED, 5-LOW
+        data_tests:
+          - accepted_values:
+              values: ["URGENT", "HIGH", "MEDIUM", "LOW", "UNKNOWN"]
+
+      - name: days_to_first_ship
+        description: Days from order date to first shipment
+
+      - name: fulfillment_speed
+        description: |
+          Fulfillment performance:
+          - FAST: <= 7 days
+          - NORMAL: 8-14 days
+          - SLOW: > 14 days
+          - NOT_SHIPPED: No shipment yet
+        data_tests:
+          - accepted_values:
+              values: ["FAST", "NORMAL", "SLOW", "NOT_SHIPPED"]
+
+      - name: load_date
+        description: Data vault load timestamp
+        data_tests:
+          - not_null
+
+      - name: record_source
+        description: Source system identifier
+        data_tests:
+          - accepted_values:
+              values: ["DERIVED"]
+
+  - name: sat_lineitem_enriched
+    description: |
+      **Business Data Vault: Line Item Enriched**
+
+      Currency-converted line item metrics with delivery performance analytics.
+
+      **Pattern**: Business Satellite (Data Vault 2.0)
+      **Source**: RDV hubs, links, satellites, and FX rates
+      **Purpose**: Standardized USD pricing and delivery tracking
+      **Grain**: One row per line item (latest state)
+
+      **Business Logic**:
+      - **Currency Conversion**: All prices converted to USD using FX rates
+      - **Price Calculations**: Net price, discounts, taxes in USD
+      - **Delivery Performance**: On-time vs late classification
+      - **Return Analysis**: Return status tracking
+      - **Product Enrichment**: Product attributes joined for analytics
+
+    columns:
+      - name: lineitem_hk
+        description: Line item hash key (FK to HUB_LINEITEM)
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('hub_lineitem')
+              field: lineitem_hk
+
+      - name: lineitem_enriched_hashdiff
+        description: Hash difference for change detection
+        data_tests:
+          - not_null
+
+      - name: original_price
+        description: Original extended price
+
+      - name: net_price
+        description: Price after discount, before tax
+
+      - name: total_price
+        description: Final price after discount and tax
+
+      - name: source_currency
+        description: Source currency (TPC-H assumes USD)
+        data_tests:
+          - accepted_values:
+              values: ["USD"]
+
+      - name: fx_rate_to_usd
+        description: Exchange rate to USD (1.0 for USD)
+
+      - name: net_price_usd
+        description: Net price in USD
+
+      - name: line_total_usd
+        description: Line total in USD (quantity * net price)
+
+      - name: discount_amount
+        description: Total discount amount
+
+      - name: tax_amount
+        description: Total tax amount
+
+      - name: l_quantity
+        description: Quantity ordered
+
+      - name: l_returnflag
+        description: Return flag (R/A/N)
+
+      - name: l_linestatus
+        description: Line status (O/F)
+
+      - name: l_shipdate
+        description: Ship date
+
+      - name: l_commitdate
+        description: Commit date
+
+      - name: l_receiptdate
+        description: Receipt date
+
+      - name: l_shipinstruct
+        description: Shipping instructions
+
+      - name: l_shipmode
+        description: Shipping mode
+
+      - name: part_name
+        description: Product name
+
+      - name: part_brand
+        description: Product brand
+
+      - name: part_type
+        description: Product type
+
+      - name: part_size
+        description: Product size
+
+      - name: days_early_late
+        description: Days early (negative) or late (positive) vs commit date
+
+      - name: delivery_performance
+        description: |
+          Delivery performance classification:
+          - ON_TIME: Shipped on or before commit date
+          - SLIGHTLY_LATE: 1-3 days late
+          - LATE: > 3 days late
+        data_tests:
+          - accepted_values:
+              values: ["ON_TIME", "SLIGHTLY_LATE", "LATE"]
+
+      - name: return_status
+        description: |
+          Return status:
+          - RETURNED: Item returned
+          - ACCEPTED: Item accepted
+          - NOT_RETURNED: No return
+        data_tests:
+          - accepted_values:
+              values: ["RETURNED", "ACCEPTED", "NOT_RETURNED", "UNKNOWN"]
+
+      - name: line_status_description
+        description: |
+          Line fulfillment status:
+          - OUTSTANDING: Not yet fulfilled
+          - FULFILLED: Complete
+        data_tests:
+          - accepted_values:
+              values: ["OUTSTANDING", "FULFILLED", "UNKNOWN"]
+
+      - name: load_date
+        description: Data vault load timestamp
+        data_tests:
+          - not_null
+
+      - name: record_source
+        description: Source system identifier
+        data_tests:
+          - accepted_values:
+              values: ["DERIVED"]

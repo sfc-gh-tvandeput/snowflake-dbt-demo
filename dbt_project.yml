@@ -133,13 +133,16 @@ models:
         +tags: ["satellite"]
         +materialized: incremental
 
-    # Business Data Vault - PIT, Bridge Tables
+    # Business Data Vault - PIT, Bridge Tables, Business Satellites
     bdv:
       +tags: ["data_vault", "bdv"]
       +schema: bdv
       pit:
         +tags: ["pit"]
         +materialized: pit_incremental
+      business_satellites:
+        +tags: ["business_satellite"]
+        +materialized: incremental
 
     # MEDALLION ARCHITECTURE WITH INTEGRATED BEST PRACTICES (LEGACY)
     # Bronze Layer - Staging models + raw data patterns

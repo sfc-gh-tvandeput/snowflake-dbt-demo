@@ -1,0 +1,155 @@
+version: 2
+
+unit_tests:
+  # ===========================================================================
+  # VALUE_SEGMENT CALCULATION UNIT TESTS
+  # Using hex strings ('01', '02', etc.) for BINARY hash keys
+  # These cast successfully: try_cast('01' as BINARY) → 0x01
+  # ===========================================================================
+
+  - name: test_value_segment_boundaries
+    model: sat_customer_derived
+    description: "Test value_segment thresholds: 1000 and 5000"
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('hub_customer')
+        rows:
+          - { customer_hk: "01" }
+          - { customer_hk: "02" }
+          - { customer_hk: "03" }
+          - { customer_hk: "04" }
+      - input: ref('sat_customer')
+        rows:
+          - { customer_hk: "01", account_balance: 999.99 }
+          - { customer_hk: "02", account_balance: 1000.00 }
+          - { customer_hk: "03", account_balance: 4999.99 }
+          - { customer_hk: "04", account_balance: 5000.00 }
+      - input: ref('link_order_customer')
+        rows: []
+      - input: ref('hub_order')
+        rows: []
+      - input: ref('sat_order')
+        rows: []
+      - input: ref('link_lineitem_order')
+        rows: []
+      - input: ref('hub_lineitem')
+        rows: []
+      - input: ref('sat_lineitem')
+        rows: []
+    expect:
+      rows:
+        - { value_segment: Standard, account_balance: 999.99 }
+        - { value_segment: Medium Value, account_balance: 1000.00 }
+        - { value_segment: Medium Value, account_balance: 4999.99 }
+        - { value_segment: High Value, account_balance: 5000.00 }
+
+  - name: test_value_segment_negative_and_zero
+    model: sat_customer_derived
+    description: "Test value_segment with edge cases: negative and zero balances"
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('hub_customer')
+        rows:
+          - { customer_hk: "05" }
+          - { customer_hk: "06" }
+      - input: ref('sat_customer')
+        rows:
+          - { customer_hk: "05", account_balance: -500.00 }
+          - { customer_hk: "06", account_balance: 0.00 }
+      - input: ref('link_order_customer')
+        rows: []
+      - input: ref('hub_order')
+        rows: []
+      - input: ref('sat_order')
+        rows: []
+      - input: ref('link_lineitem_order')
+        rows: []
+      - input: ref('hub_lineitem')
+        rows: []
+      - input: ref('sat_lineitem')
+        rows: []
+    expect:
+      rows:
+        - { value_segment: Standard, account_balance: -500.00 }
+        - { value_segment: Standard, account_balance: 0.00 }
+
+  # ===========================================================================
+  # HAS_ORDERS_FLAG UNIT TESTS
+  # ===========================================================================
+
+  - name: test_has_orders_flags_no_orders
+    model: sat_customer_derived
+    description: "Test flags for customer with no orders"
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('hub_customer')
+        rows:
+          - { customer_hk: "07" }
+      - input: ref('sat_customer')
+        rows:
+          - { customer_hk: "07", account_balance: 2500.00 }
+      - input: ref('link_order_customer')
+        rows: []
+      - input: ref('hub_order')
+        rows: []
+      - input: ref('sat_order')
+        rows: []
+      - input: ref('link_lineitem_order')
+        rows: []
+      - input: ref('hub_lineitem')
+        rows: []
+      - input: ref('sat_lineitem')
+        rows: []
+    expect:
+      rows:
+        - { has_orders_flag: "N", has_open_orders_flag: "N", total_orders: 0, open_orders: 0 }
+
+  - name: test_has_orders_flags_with_orders
+    model: sat_customer_derived
+    description: "Test flags for customer with orders (mix of Open and Fulfilled)"
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('hub_customer')
+        rows:
+          - { customer_hk: "AA" }
+      - input: ref('sat_customer')
+        rows:
+          - { customer_hk: "AA", hashdiff: "BB", account_balance: 7500.00 }
+      - input: ref('link_order_customer')
+        rows:
+          - { customer_hk: "AA", order_hk: "DD01" }
+          - { customer_hk: "AA", order_hk: "DD02" }
+          - { customer_hk: "AA", order_hk: "DD03" }
+      - input: ref('hub_order')
+        rows:
+          - { order_hk: "DD01", order_key: 2001 }
+          - { order_hk: "DD02", order_key: 2002 }
+          - { order_hk: "DD03", order_key: 2003 }
+      - input: ref('sat_order')
+        rows:
+          - { order_hk: "DD01", order_status: "O" }
+          - { order_hk: "DD02", order_status: "F" }
+          - { order_hk: "DD03", order_status: "O" }
+      - input: ref('link_lineitem_order')
+        rows: []
+      - input: ref('hub_lineitem')
+        rows: []
+      - input: ref('sat_lineitem')
+        rows: []
+    expect:
+      rows:
+        - {
+            has_orders_flag: "Y",
+            has_open_orders_flag: "Y",
+            total_orders: 3,
+            open_orders: 2,
+            value_segment: High Value,
+          }
