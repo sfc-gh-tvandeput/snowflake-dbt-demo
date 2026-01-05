@@ -18,3 +18,6 @@ models:
 
   - name: stg_dv_suppliers
     description: "AutomateDV staging model for TPC-H suppliers with hash keys and metadata"
+
+  - name: stg_dv_parts
+    description: "AutomateDV staging model for TPC-H parts/products with hash keys and metadata"

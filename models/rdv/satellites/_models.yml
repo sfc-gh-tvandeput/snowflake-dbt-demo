@@ -689,3 +689,400 @@ tests:
           - not_null:
               config:
                 severity: error
+
+  - name: sat_supplier
+    description: |
+      **Raw Data Vault Satellite: Supplier Descriptive Attributes**
+
+      Contains all descriptive attributes about suppliers with full history.
+      Tracks supplier profile changes including name, address, account balance, etc.
+
+      **Pattern**: Satellite (Data Vault 2.0)
+      **Grain**: One row per supplier per change (Type 2 SCD)
+      **Parent Hub**: HUB_SUPPLIER
+      **Source**: stg_dv_suppliers (TPC-H SUPPLIER table)
+      **Load Strategy**: Incremental (insert on hashdiff change)
+    meta:
+      owner: "Data Engineering Team"
+      layer: "rdv"
+      entity_type: "satellite"
+      parent_hub: "hub_supplier"
+
+    columns:
+      - name: supplier_hk
+        description: "Foreign key to HUB_SUPPLIER (Part of Composite PK)"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_supplier')
+              field: supplier_hk
+              config:
+                severity: error
+
+      - name: hashdiff
+        description: "MD5 hash of all payload columns for change detection"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: supplier_name
+        description: "Supplier name (from S_NAME)"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: supplier_address
+        description: "Supplier mailing address (from S_ADDRESS)"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: warn
+
+      - name: nation_key
+        description: "Nation/country where supplier is located (from S_NATIONKEY)"
+        data_type: number
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: source('TPC_H', 'NATION')
+              field: n_nationkey
+              config:
+                severity: warn
+
+      - name: supplier_phone
+        description: "Supplier contact phone number (from S_PHONE)"
+        data_type: varchar
+
+      - name: account_balance
+        description: "Supplier account balance (from S_ACCTBAL)"
+        data_type: number
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: supplier_comment
+        description: "Supplier comments/notes (from S_COMMENT)"
+        data_type: varchar
+
+      - name: load_date
+        description: "Effective from timestamp (Part of Composite PK)"
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: record_source
+        description: "Source system: TPC_H"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+  - name: sat_lineitem
+    description: |
+      **Raw Data Vault Satellite: Line Item Transaction Attributes**
+
+      Contains all descriptive attributes for order line items.
+      Tracks quantity, pricing, discounts, shipping details, and status.
+
+      **Pattern**: Satellite (Data Vault 2.0)
+      **Grain**: One row per line item per change (Type 2 SCD)
+      **Parent Hub**: HUB_LINEITEM
+      **Source**: stg_dv_lineitem (TPC-H LINEITEM table)
+      **Load Strategy**: Incremental (insert on hashdiff change)
+    meta:
+      owner: "Data Engineering Team"
+      layer: "rdv"
+      entity_type: "satellite"
+      parent_hub: "hub_lineitem"
+
+    columns:
+      - name: lineitem_hk
+        description: "Foreign key to HUB_LINEITEM (Part of Composite PK)"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_lineitem')
+              field: lineitem_hk
+              config:
+                severity: error
+
+      - name: hashdiff
+        description: "MD5 hash of all payload columns for change detection"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: quantity
+        description: "Quantity ordered (from L_QUANTITY)"
+        data_type: number
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+              config:
+                severity: error
+
+      - name: extended_price
+        description: "Extended price (quantity * unit price) from L_EXTENDEDPRICE"
+        data_type: number
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+              config:
+                severity: error
+
+      - name: discount
+        description: "Discount percentage (from L_DISCOUNT)"
+        data_type: number
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - dbt_utils.expression_is_true:
+              expression: ">= 0 AND <= 1"
+              config:
+                severity: warn
+
+      - name: tax
+        description: "Tax rate (from L_TAX)"
+        data_type: number
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - dbt_utils.expression_is_true:
+              expression: ">= 0 AND <= 1"
+              config:
+                severity: warn
+
+      - name: return_flag
+        description: "Return status flag (from L_RETURNFLAG): N=No, R=Return, A=Accepted"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - accepted_values:
+              values: ["N", "R", "A"]
+              config:
+                severity: warn
+
+      - name: line_status
+        description: "Line item status (from L_LINESTATUS): O=Open, F=Finished"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - accepted_values:
+              values: ["O", "F"]
+              config:
+                severity: warn
+
+      - name: ship_date
+        description: "Actual ship date (from L_SHIPDATE)"
+        data_type: date
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: commit_date
+        description: "Committed delivery date (from L_COMMITDATE)"
+        data_type: date
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: receipt_date
+        description: "Actual receipt date (from L_RECEIPTDATE)"
+        data_type: date
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: ship_instruct
+        description: "Shipping instructions (from L_SHIPINSTRUCT)"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: warn
+
+      - name: ship_mode
+        description: "Shipping mode/method (from L_SHIPMODE)"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: warn
+
+      - name: line_comment
+        description: "Line item comment (from L_COMMENT)"
+        data_type: varchar
+
+      - name: load_date
+        description: "Effective from timestamp (Part of Composite PK)"
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: record_source
+        description: "Source system: TPC_H"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+  - name: sat_product
+    description: |
+      **Raw Data Vault Satellite: Product/Part Descriptive Attributes**
+
+      Contains all descriptive attributes about products (parts).
+      Tracks product specifications, pricing, branding, and categorization.
+
+      **Pattern**: Satellite (Data Vault 2.0)
+      **Grain**: One row per product per change (Type 2 SCD)
+      **Parent Hub**: HUB_PRODUCT
+      **Source**: stg_dv_parts (TPC-H PART table)
+      **Load Strategy**: Incremental (insert on hashdiff change)
+    meta:
+      owner: "Data Engineering Team"
+      layer: "rdv"
+      entity_type: "satellite"
+      parent_hub: "hub_product"
+
+    columns:
+      - name: part_hk
+        description: "Foreign key to HUB_PRODUCT (Part of Composite PK)"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_product')
+              field: part_hk
+              config:
+                severity: error
+
+      - name: hashdiff
+        description: "MD5 hash of all payload columns for change detection"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: part_name
+        description: "Product/part name (from P_NAME)"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: manufacturer
+        description: "Manufacturer identifier (from P_MFGR)"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: brand
+        description: "Brand identifier (from P_BRAND)"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: part_type
+        description: "Product type/category (from P_TYPE)"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: part_size
+        description: "Product size (from P_SIZE)"
+        data_type: number
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+              config:
+                severity: warn
+
+      - name: container
+        description: "Container type (from P_CONTAINER)"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: retail_price
+        description: "Retail price (from P_RETAILPRICE)"
+        data_type: number
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+              config:
+                severity: error
+
+      - name: part_comment
+        description: "Product comment/description (from P_COMMENT)"
+        data_type: varchar
+
+      - name: load_date
+        description: "Effective from timestamp (Part of Composite PK)"
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: record_source
+        description: "Source system: TPC_H"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
