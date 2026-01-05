@@ -274,3 +274,323 @@ models:
               values: ["TPC_H"]
               config:
                 severity: error
+
+  - name: hub_nation
+    description: |
+      **Raw Data Vault Hub: Nation Business Keys**
+
+      Contains unique nation identifiers from TPC-H reference data.
+
+      **Pattern**: Hub (Data Vault 2.0)
+      **Grain**: One row per unique nation
+      **Source**: stg_dv_nations (TPC-H NATION table)
+      **Business Key**: NATION_KEY (Nation ID)
+      **Load Strategy**: Incremental (insert-only, idempotent)
+    meta:
+      owner: "Data Engineering Team"
+      layer: "rdv"
+      entity_type: "hub"
+
+    columns:
+      - name: nation_hk
+        description: "MD5 hash of NATION_KEY"
+        data_type: binary
+        tests:
+          - unique:
+              config:
+                severity: error
+          - not_null:
+              config:
+                severity: error
+
+      - name: nation_key
+        description: "Natural business key for nation (derived from N_NATIONKEY)"
+        data_type: number
+        tests:
+          - unique:
+              config:
+                severity: error
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: source('TPC_H', 'NATION')
+              field: n_nationkey
+              config:
+                severity: warn
+
+      - name: load_date
+        description: "Timestamp when this nation key first appeared in data warehouse"
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: record_source
+        description: "Source system: TPC_H"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - accepted_values:
+              values: ["TPC_H"]
+              config:
+                severity: error
+
+  - name: hub_region
+    description: |
+      **Raw Data Vault Hub: Region Business Keys**
+
+      Contains unique region identifiers from TPC-H reference data.
+
+      **Pattern**: Hub (Data Vault 2.0)
+      **Grain**: One row per unique region
+      **Source**: stg_dv_regions (TPC-H REGION table)
+      **Business Key**: REGION_KEY (Region ID)
+      **Load Strategy**: Incremental (insert-only, idempotent)
+    meta:
+      owner: "Data Engineering Team"
+      layer: "rdv"
+      entity_type: "hub"
+
+    columns:
+      - name: region_hk
+        description: "MD5 hash of REGION_KEY"
+        data_type: binary
+        tests:
+          - unique:
+              config:
+                severity: error
+          - not_null:
+              config:
+                severity: error
+
+      - name: region_key
+        description: "Natural business key for region (derived from R_REGIONKEY)"
+        data_type: number
+        tests:
+          - unique:
+              config:
+                severity: error
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: source('TPC_H', 'REGION')
+              field: r_regionkey
+              config:
+                severity: warn
+
+      - name: load_date
+        description: "Timestamp when this region key first appeared in data warehouse"
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: record_source
+        description: "Source system: TPC_H"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - accepted_values:
+              values: ["TPC_H"]
+              config:
+                severity: error
+
+  - name: hub_supplier
+    description: |
+      **Raw Data Vault Hub: Supplier Business Keys**
+
+      Contains unique supplier identifiers from TPC-H.
+
+      **Pattern**: Hub (Data Vault 2.0)
+      **Grain**: One row per unique supplier
+      **Source**: stg_dv_suppliers (TPC-H SUPPLIER table)
+      **Business Key**: SUPPLIER_KEY (Supplier ID)
+      **Load Strategy**: Incremental (insert-only, idempotent)
+    meta:
+      owner: "Data Engineering Team"
+      layer: "rdv"
+      entity_type: "hub"
+
+    columns:
+      - name: supplier_hk
+        description: "MD5 hash of SUPPLIER_KEY"
+        data_type: binary
+        tests:
+          - unique:
+              config:
+                severity: error
+          - not_null:
+              config:
+                severity: error
+
+      - name: supplier_key
+        description: "Natural business key for supplier (derived from S_SUPPKEY)"
+        data_type: number
+        tests:
+          - unique:
+              config:
+                severity: error
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: source('TPC_H', 'SUPPLIER')
+              field: s_suppkey
+              config:
+                severity: warn
+
+      - name: load_date
+        description: "Timestamp when this supplier key first appeared in data warehouse"
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: record_source
+        description: "Source system: TPC_H"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - accepted_values:
+              values: ["TPC_H"]
+              config:
+                severity: error
+
+  - name: hub_lineitem
+    description: |
+      **Raw Data Vault Hub: Line Item Business Keys**
+
+      Contains unique line item identifiers with composite business key.
+
+      **Pattern**: Hub (Data Vault 2.0)
+      **Grain**: One row per unique line item (ORDER_KEY + LINE_NUMBER)
+      **Source**: stg_dv_lineitem (TPC-H LINEITEM table)
+      **Business Key**: Composite (ORDER_KEY, LINE_NUMBER)
+      **Load Strategy**: Incremental (insert-only, idempotent)
+    meta:
+      owner: "Data Engineering Team"
+      layer: "rdv"
+      entity_type: "hub"
+
+    columns:
+      - name: lineitem_hk
+        description: "MD5 hash of composite key (ORDER_KEY + LINE_NUMBER)"
+        data_type: binary
+        tests:
+          - unique:
+              config:
+                severity: error
+          - not_null:
+              config:
+                severity: error
+
+      - name: order_key
+        description: "Order identifier component of composite key (derived from L_ORDERKEY)"
+        data_type: number
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: line_number
+        description: "Line number component of composite key (derived from L_LINENUMBER)"
+        data_type: number
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: load_date
+        description: "Timestamp when this line item key first appeared in data warehouse"
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: record_source
+        description: "Source system: TPC_H"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - accepted_values:
+              values: ["TPC_H"]
+              config:
+                severity: error
+
+  - name: hub_currency_pair
+    description: |
+      **Raw Data Vault Hub: Currency Pair Business Keys**
+
+      Contains unique currency pairs from Cybersyn FX rates data.
+
+      **Pattern**: Hub (Data Vault 2.0)
+      **Grain**: One row per unique currency pair (BASE_CURRENCY + QUOTE_CURRENCY)
+      **Source**: stg_dv_fx_rates (Cybersyn FX_RATES_TIMESERIES)
+      **Business Key**: Composite (BASE_CURRENCY, QUOTE_CURRENCY)
+      **Load Strategy**: Incremental (insert-only, idempotent)
+    meta:
+      owner: "Data Engineering Team"
+      layer: "rdv"
+      entity_type: "hub"
+
+    columns:
+      - name: currency_pair_hk
+        description: "MD5 hash of composite key (BASE_CURRENCY + QUOTE_CURRENCY)"
+        data_type: binary
+        tests:
+          - unique:
+              config:
+                severity: error
+          - not_null:
+              config:
+                severity: error
+
+      - name: base_currency
+        description: "Base currency code (e.g., USD)"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: quote_currency
+        description: "Quote currency code (e.g., EUR)"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: load_date
+        description: "Timestamp when this currency pair first appeared in data warehouse"
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: record_source
+        description: "Source system: CYBERSYN"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - accepted_values:
+              values: ["CYBERSYN"]
+              config:
+                severity: error

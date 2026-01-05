@@ -485,3 +485,207 @@ tests:
       config:
         severity: warn
         error_if: ">10" # Some duplicates OK during initial load
+
+  - name: sat_nation
+    description: |
+      **Raw Data Vault Satellite: Nation Attributes**
+
+      **Pattern**: Satellite (Data Vault 2.0)
+      **Grain**: One row per nation per change in attributes
+      **Source**: stg_dv_nations (TPC-H NATION table)
+      **Parent Hub**: HUB_NATION
+    meta:
+      owner: "Data Engineering Team"
+      layer: "rdv"
+      entity_type: "satellite"
+
+    columns:
+      - name: nation_hk
+        description: "Foreign key to HUB_NATION"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_nation')
+              field: nation_hk
+              config:
+                severity: error
+
+      - name: nation_hashdiff
+        description: "MD5 hash of all payload columns for change detection"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: nation_name
+        description: "Nation name"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: nation_comment
+        description: "Nation comment/description"
+        data_type: varchar
+
+      - name: region_key
+        description: "Reference to region"
+        data_type: number
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: load_date
+        description: "Load timestamp"
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: record_source
+        description: "Source system: TPC_H"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+  - name: sat_region
+    description: |
+      **Raw Data Vault Satellite: Region Attributes**
+
+      **Pattern**: Satellite (Data Vault 2.0)
+      **Grain**: One row per region per change in attributes
+      **Source**: stg_dv_regions (TPC-H REGION table)
+      **Parent Hub**: HUB_REGION
+    meta:
+      owner: "Data Engineering Team"
+      layer: "rdv"
+      entity_type: "satellite"
+
+    columns:
+      - name: region_hk
+        description: "Foreign key to HUB_REGION"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_region')
+              field: region_hk
+              config:
+                severity: error
+
+      - name: region_hashdiff
+        description: "MD5 hash of all payload columns for change detection"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: region_name
+        description: "Region name"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: region_comment
+        description: "Region comment/description"
+        data_type: varchar
+
+      - name: load_date
+        description: "Load timestamp"
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: record_source
+        description: "Source system: TPC_H"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+  - name: sat_fx_rate
+    description: |
+      **Raw Data Vault Satellite: FX Rate Time Series**
+
+      **Pattern**: Satellite (Data Vault 2.0)
+      **Grain**: One row per currency pair per date per change
+      **Source**: stg_dv_fx_rates (Cybersyn FX_RATES_TIMESERIES)
+      **Parent Hub**: HUB_CURRENCY_PAIR (via FX_RATE_HK composite key)
+    meta:
+      owner: "Data Engineering Team"
+      layer: "rdv"
+      entity_type: "satellite"
+
+    columns:
+      - name: fx_rate_hk
+        description: "Composite hash key (BASE_CURRENCY + QUOTE_CURRENCY + DATE)"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: fx_rate_hashdiff
+        description: "MD5 hash of all payload columns for change detection"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: rate_date
+        description: "Date of exchange rate observation"
+        data_type: date
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: exchange_rate
+        description: "Exchange rate value"
+        data_type: float
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: variable_id
+        description: "Cybersyn variable identifier"
+        data_type: varchar
+
+      - name: variable_name
+        description: "Cybersyn variable name"
+        data_type: varchar
+
+      - name: load_date
+        description: "Load timestamp"
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: record_source
+        description: "Source system: CYBERSYN"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error

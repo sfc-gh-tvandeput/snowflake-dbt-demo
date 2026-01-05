@@ -1,0 +1,20 @@
+version: 2
+
+models:
+  - name: stg_dv_customers
+    description: "AutomateDV staging model for TPC-H customers with hash keys and metadata"
+
+  - name: stg_dv_orders
+    description: "AutomateDV staging model for TPC-H orders with hash keys and metadata"
+
+  - name: stg_dv_lineitem
+    description: "AutomateDV staging model for TPC-H line items with composite hash keys"
+
+  - name: stg_dv_nations
+    description: "AutomateDV staging model for TPC-H nations with hash keys and metadata"
+
+  - name: stg_dv_regions
+    description: "AutomateDV staging model for TPC-H regions with hash keys and metadata"
+
+  - name: stg_dv_suppliers
+    description: "AutomateDV staging model for TPC-H suppliers with hash keys and metadata"

@@ -1,0 +1,7 @@
+version: 2
+
+models:
+  - name: stg_dv_fx_rates
+    description:
+      "AutomateDV staging model for Cybersyn FX rates with composite hash keys (BASE_CURRENCY +
+      QUOTE_CURRENCY)"
