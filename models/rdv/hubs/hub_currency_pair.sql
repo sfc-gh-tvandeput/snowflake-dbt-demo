@@ -4,14 +4,6 @@
     tags=['rdv', 'hub', 'economic']
 ) }}
 
-{#-
-    Raw Data Vault Hub: HUB_CURRENCY_PAIR
-
-    Pattern: Hub (Unique business keys only)
-    Grain: One row per unique currency pair (BASE_CURRENCY + QUOTE_CURRENCY)
-    Source: Cybersyn FX_RATES_TIMESERIES via stg_dv_fx_rates
--#}
-
 {%- set yaml_metadata -%}
 source_model: "stg_dv_fx_rates"
 src_pk: "CURRENCY_PAIR_HK"

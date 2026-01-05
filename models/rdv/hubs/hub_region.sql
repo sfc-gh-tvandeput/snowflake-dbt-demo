@@ -4,14 +4,6 @@
     tags=['rdv', 'hub', 'tpc_h']
 ) }}
 
-{#-
-    Raw Data Vault Hub: HUB_REGION
-
-    Pattern: Hub (Unique business keys only)
-    Grain: One row per unique region
-    Source: TPC-H REGION table via stg_dv_regions
--#}
-
 {%- set yaml_metadata -%}
 source_model: "stg_dv_regions"
 src_pk: "REGION_HK"

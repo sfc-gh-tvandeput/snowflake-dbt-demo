@@ -2,17 +2,6 @@
     tags=['staging', 'tpc_h', 'data_vault']
 ) }}
 
-{#-
-    Data Vault Staging Model for TPC-H SUPPLIER source
-    Refactored to use AutomateDV stage() macro
-
-    This model adds:
-    - Hashed business keys (supplier_hk, nation_hk)
-    - Hash diff for change tracking (supplier_hashdiff)
-    - Data Vault metadata (load_date, record_source)
-    - Maintains backward compatibility with existing column names
--#}
-
 {%- set yaml_metadata -%}
 source_model:
     TPC_H: "SUPPLIER"

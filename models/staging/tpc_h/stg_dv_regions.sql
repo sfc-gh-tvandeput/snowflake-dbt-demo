@@ -2,17 +2,6 @@
     tags=['staging', 'tpc_h', 'data_vault']
 ) }}
 
-{#-
-    Data Vault Staging Model for TPC-H REGION source
-    Refactored to use AutomateDV stage() macro
-
-    This model adds:
-    - Hashed business keys (region_hk)
-    - Hash diff for change tracking (region_hashdiff)
-    - Data Vault metadata (load_date, record_source)
-    - Maintains backward compatibility with existing column names
--#}
-
 {%- set yaml_metadata -%}
 source_model:
     TPC_H: "REGION"

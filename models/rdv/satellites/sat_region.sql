@@ -4,14 +4,6 @@
     tags=['rdv', 'satellite', 'tpc_h']
 ) }}
 
-{#-
-    Raw Data Vault Satellite: SAT_REGION
-
-    Pattern: Satellite (Descriptive attributes with change tracking)
-    Grain: One row per region per change in attributes
-    Source: TPC-H REGION table via stg_dv_regions
--#}
-
 {%- set yaml_metadata -%}
 source_model: "stg_dv_regions"
 src_pk: "REGION_HK"

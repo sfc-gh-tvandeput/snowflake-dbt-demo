@@ -4,16 +4,6 @@
     tags=['rdv', 'hub', 'tpc_h']
 ) }}
 
-{#-
-    Raw Data Vault Hub: HUB_CUSTOMER
-
-    Contains unique list of all customer business keys
-    Loaded from: stg_dv_customers
-
-    Business Key: CUSTOMER_HK (hash of CUSTOMER_KEY)
-    Natural Key: CUSTOMER_KEY (Customer ID)
--#}
-
 {%- set yaml_metadata -%}
 source_model: "stg_dv_customers"
 src_pk: "CUSTOMER_HK"

@@ -4,14 +4,6 @@
     tags=['rdv', 'satellite', 'economic']
 ) }}
 
-{#-
-    Raw Data Vault Satellite: SAT_FX_RATE
-
-    Pattern: Satellite (Descriptive attributes with change tracking)
-    Grain: One row per currency pair per date per change in FX rate
-    Source: Cybersyn FX_RATES_TIMESERIES via stg_dv_fx_rates
--#}
-
 {%- set yaml_metadata -%}
 source_model: "stg_dv_fx_rates"
 src_pk: "FX_RATE_HK"

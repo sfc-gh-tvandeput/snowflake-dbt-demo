@@ -4,14 +4,6 @@
     tags=['rdv', 'hub', 'tpc_h']
 ) }}
 
-{#-
-    Raw Data Vault Hub: HUB_SUPPLIER
-
-    Pattern: Hub (Unique business keys only)
-    Grain: One row per unique supplier
-    Source: TPC-H SUPPLIER table via stg_dv_suppliers
--#}
-
 {%- set yaml_metadata -%}
 source_model: "stg_dv_suppliers"
 src_pk: "SUPPLIER_HK"

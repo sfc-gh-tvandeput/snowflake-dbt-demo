@@ -2,18 +2,6 @@
     tags=['staging', 'tpc_h', 'data_vault']
 ) }}
 
-{#-
-    Data Vault Staging Model for TPC-H LINEITEM source
-    Refactored to use AutomateDV stage() macro
-
-    This model adds:
-    - Hashed business keys (lineitem_hk, order_hk, part_hk, supplier_hk)
-    - Composite hash key for composite primary key
-    - Hash diff for change tracking (lineitem_hashdiff)
-    - Data Vault metadata (load_date, record_source)
-    - Maintains backward compatibility with existing column names
--#}
-
 {%- set yaml_metadata -%}
 source_model:
     TPC_H: "LINEITEM"

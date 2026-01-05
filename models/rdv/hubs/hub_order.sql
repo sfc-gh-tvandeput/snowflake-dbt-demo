@@ -4,16 +4,6 @@
     tags=['rdv', 'hub', 'tpc_h']
 ) }}
 
-{#-
-    Raw Data Vault Hub: HUB_ORDER
-
-    Contains unique list of all order business keys
-    Loaded from: stg_dv_orders
-
-    Business Key: ORDER_HK (hash of ORDER_KEY)
-    Natural Key: ORDER_KEY (Order ID)
--#}
-
 {%- set yaml_metadata -%}
 source_model: "stg_dv_orders"
 src_pk: "ORDER_HK"

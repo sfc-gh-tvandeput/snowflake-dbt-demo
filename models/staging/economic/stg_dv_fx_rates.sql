@@ -2,17 +2,6 @@
     tags=['staging', 'economic_essentials', 'data_vault']
 ) }}
 
-{#-
-    Data Vault Staging Model for Cybersyn FX_RATES_TIMESERIES source
-    Refactored to use AutomateDV stage() macro
-
-    This model adds:
-    - Hashed business keys (currency_pair_hk)
-    - Hash diff for change tracking (fx_rate_hashdiff)
-    - Data Vault metadata (load_date, record_source)
-    - Composite business key: base_currency + quote_currency
--#}
-
 {%- set yaml_metadata -%}
 source_model:
     ECONOMIC_ESSENTIALS: "FX_RATES_TIMESERIES"
