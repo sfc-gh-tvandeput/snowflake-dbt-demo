@@ -21,6 +21,9 @@ derived_columns:
 hashed_columns:
     SUPPLIER_HK: "S_SUPPKEY"
     NATION_HK: "S_NATIONKEY"
+    SUPPLIER_NATION_HK:
+        - "S_SUPPKEY"
+        - "S_NATIONKEY"
     SUPPLIER_HASHDIFF:
         is_hashdiff: true
         columns:

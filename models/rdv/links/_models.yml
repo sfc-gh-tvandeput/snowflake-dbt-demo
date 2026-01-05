@@ -247,3 +247,429 @@ tests:
       having: "orphan_count = 0"
       config:
         severity: error
+
+  - name: link_lineitem_product
+    description: |
+      **Raw Data Vault Link: Line Item to Product**
+
+      **Pattern**: Link (Data Vault 2.0)
+      **Grain**: One row per unique lineitem-product relationship
+      **Source**: stg_dv_lineitem (TPC-H LINEITEM table)
+      **Parent Hubs**: HUB_LINEITEM, HUB_PRODUCT
+    meta:
+      owner: "Data Engineering Team"
+      layer: "rdv"
+      entity_type: "link"
+
+    columns:
+      - name: lineitem_product_hk
+        description: "Composite hash key (LINEITEM_HK + PART_HK)"
+        data_type: binary
+        tests:
+          - unique:
+              config:
+                severity: error
+          - not_null:
+              config:
+                severity: error
+
+      - name: lineitem_hk
+        description: "Foreign key to HUB_LINEITEM"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_lineitem')
+              field: lineitem_hk
+              config:
+                severity: error
+
+      - name: part_hk
+        description: "Foreign key to HUB_PRODUCT (PART_HK)"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_product')
+              field: part_hk
+              config:
+                severity: error
+
+      - name: load_date
+        description: "Load timestamp"
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: record_source
+        description: "Source system: TPC_H"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - accepted_values:
+              values: ["TPC_H"]
+              config:
+                severity: error
+
+  - name: link_lineitem_supplier
+    description: |
+      **Raw Data Vault Link: Line Item to Supplier**
+
+      **Pattern**: Link (Data Vault 2.0)
+      **Grain**: One row per unique lineitem-supplier relationship
+      **Source**: stg_dv_lineitem (TPC-H LINEITEM table)
+      **Parent Hubs**: HUB_LINEITEM, HUB_SUPPLIER
+    meta:
+      owner: "Data Engineering Team"
+      layer: "rdv"
+      entity_type: "link"
+
+    columns:
+      - name: lineitem_supplier_hk
+        description: "Composite hash key (LINEITEM_HK + SUPPLIER_HK)"
+        data_type: binary
+        tests:
+          - unique:
+              config:
+                severity: error
+          - not_null:
+              config:
+                severity: error
+
+      - name: lineitem_hk
+        description: "Foreign key to HUB_LINEITEM"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_lineitem')
+              field: lineitem_hk
+              config:
+                severity: error
+
+      - name: supplier_hk
+        description: "Foreign key to HUB_SUPPLIER"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_supplier')
+              field: supplier_hk
+              config:
+                severity: error
+
+      - name: load_date
+        description: "Load timestamp"
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: record_source
+        description: "Source system: TPC_H"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - accepted_values:
+              values: ["TPC_H"]
+              config:
+                severity: error
+
+  - name: link_customer_nation
+    description: |
+      **Raw Data Vault Link: Customer to Nation**
+
+      **Pattern**: Link (Data Vault 2.0)
+      **Grain**: One row per unique customer-nation relationship
+      **Source**: stg_dv_customers (TPC-H CUSTOMER table)
+      **Parent Hubs**: HUB_CUSTOMER, HUB_NATION
+    meta:
+      owner: "Data Engineering Team"
+      layer: "rdv"
+      entity_type: "link"
+
+    columns:
+      - name: customer_nation_hk
+        description: "Composite hash key (CUSTOMER_HK + NATION_HK)"
+        data_type: binary
+        tests:
+          - unique:
+              config:
+                severity: error
+          - not_null:
+              config:
+                severity: error
+
+      - name: customer_hk
+        description: "Foreign key to HUB_CUSTOMER"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_customer')
+              field: customer_hk
+              config:
+                severity: error
+
+      - name: nation_hk
+        description: "Foreign key to HUB_NATION"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_nation')
+              field: nation_hk
+              config:
+                severity: error
+
+      - name: load_date
+        description: "Load timestamp"
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: record_source
+        description: "Source system: TPC_H"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - accepted_values:
+              values: ["TPC_H"]
+              config:
+                severity: error
+
+  - name: link_supplier_nation
+    description: |
+      **Raw Data Vault Link: Supplier to Nation**
+
+      **Pattern**: Link (Data Vault 2.0)
+      **Grain**: One row per unique supplier-nation relationship
+      **Source**: stg_dv_suppliers (TPC-H SUPPLIER table)
+      **Parent Hubs**: HUB_SUPPLIER, HUB_NATION
+    meta:
+      owner: "Data Engineering Team"
+      layer: "rdv"
+      entity_type: "link"
+
+    columns:
+      - name: supplier_nation_hk
+        description: "Composite hash key (SUPPLIER_HK + NATION_HK)"
+        data_type: binary
+        tests:
+          - unique:
+              config:
+                severity: error
+          - not_null:
+              config:
+                severity: error
+
+      - name: supplier_hk
+        description: "Foreign key to HUB_SUPPLIER"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_supplier')
+              field: supplier_hk
+              config:
+                severity: error
+
+      - name: nation_hk
+        description: "Foreign key to HUB_NATION"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_nation')
+              field: nation_hk
+              config:
+                severity: error
+
+      - name: load_date
+        description: "Load timestamp"
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: record_source
+        description: "Source system: TPC_H"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - accepted_values:
+              values: ["TPC_H"]
+              config:
+                severity: error
+
+  - name: link_nation_region
+    description: |
+      **Raw Data Vault Link: Nation to Region**
+
+      **Pattern**: Link (Data Vault 2.0)
+      **Grain**: One row per unique nation-region relationship
+      **Source**: stg_dv_nations (TPC-H NATION table)
+      **Parent Hubs**: HUB_NATION, HUB_REGION
+    meta:
+      owner: "Data Engineering Team"
+      layer: "rdv"
+      entity_type: "link"
+
+    columns:
+      - name: nation_region_hk
+        description: "Composite hash key (NATION_HK + REGION_HK)"
+        data_type: binary
+        tests:
+          - unique:
+              config:
+                severity: error
+          - not_null:
+              config:
+                severity: error
+
+      - name: nation_hk
+        description: "Foreign key to HUB_NATION"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_nation')
+              field: nation_hk
+              config:
+                severity: error
+
+      - name: region_hk
+        description: "Foreign key to HUB_REGION"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_region')
+              field: region_hk
+              config:
+                severity: error
+
+      - name: load_date
+        description: "Load timestamp"
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: record_source
+        description: "Source system: TPC_H"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - accepted_values:
+              values: ["TPC_H"]
+              config:
+                severity: error
+
+  - name: link_product_supplier
+    description: |
+      **Raw Data Vault Link: Product to Supplier**
+
+      **Pattern**: Link (Data Vault 2.0)
+      **Grain**: One row per unique product-supplier relationship
+      **Source**: stg_dv_lineitem (TPC-H LINEITEM table)
+      **Parent Hubs**: HUB_PRODUCT, HUB_SUPPLIER
+    meta:
+      owner: "Data Engineering Team"
+      layer: "rdv"
+      entity_type: "link"
+
+    columns:
+      - name: product_supplier_hk
+        description: "Composite hash key (PART_HK + SUPPLIER_HK)"
+        data_type: binary
+        tests:
+          - unique:
+              config:
+                severity: error
+          - not_null:
+              config:
+                severity: error
+
+      - name: part_hk
+        description: "Foreign key to HUB_PRODUCT (PART_HK)"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_product')
+              field: part_hk
+              config:
+                severity: error
+
+      - name: supplier_hk
+        description: "Foreign key to HUB_SUPPLIER"
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_supplier')
+              field: supplier_hk
+              config:
+                severity: error
+
+      - name: load_date
+        description: "Load timestamp"
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: record_source
+        description: "Source system: TPC_H"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - accepted_values:
+              values: ["TPC_H"]
+              config:
+                severity: error

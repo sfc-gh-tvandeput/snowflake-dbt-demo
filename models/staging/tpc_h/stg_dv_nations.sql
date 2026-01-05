@@ -18,6 +18,9 @@ derived_columns:
 hashed_columns:
     NATION_HK: "N_NATIONKEY"
     REGION_HK: "N_REGIONKEY"
+    NATION_REGION_HK:
+        - "N_NATIONKEY"
+        - "N_REGIONKEY"
     NATION_HASHDIFF:
         is_hashdiff: true
         columns:
