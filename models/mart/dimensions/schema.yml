@@ -1,0 +1,86 @@
+version: 2
+
+models:
+  - name: mart_dim_calendar_day
+    description:
+      "Calendar dimension table providing date attributes for analysis. Replicates legacy
+      gold.dim_calendar_day structure."
+    config:
+      alias: dim_calendar_day
+    columns:
+      - name: day_key
+        description: "Primary key in YYYYMMDD format (surrogate key)"
+        tests:
+          - unique
+          - not_null
+
+      - name: day_dt
+        description: "Actual date value"
+        tests:
+          - not_null
+          - unique
+
+      - name: day_seq
+        description: "Sequential day number starting from 1"
+        tests:
+          - not_null
+
+      - name: year_num
+        description: "Four-digit year number"
+        tests:
+          - not_null
+
+      - name: month_num
+        description: "Month number (1-12)"
+        tests:
+          - not_null:
+              where: "day_key != 0"
+          - accepted_values:
+              values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+              where: "day_key != 0"
+
+      - name: quarter_num
+        description: "Quarter number (1-4)"
+        tests:
+          - not_null:
+              where: "day_key != 0"
+          - accepted_values:
+              values: [1, 2, 3, 4]
+              where: "day_key != 0"
+
+      - name: current_day_flag
+        description: "Y/N flag indicating if this is the current day"
+        tests:
+          - accepted_values:
+              values: ["Y", "N"]
+
+      - name: current_week_flag
+        description: "Y/N flag indicating if this is the current week"
+        tests:
+          - accepted_values:
+              values: ["Y", "N"]
+
+      - name: current_month_flag
+        description: "Y/N flag indicating if this is the current month"
+        tests:
+          - accepted_values:
+              values: ["Y", "N"]
+
+      - name: current_year_flag
+        description: "Y/N flag indicating if this is the current year"
+        tests:
+          - accepted_values:
+              values: ["Y", "N"]
+
+    tests:
+      - dbt_utils.expression_is_true:
+          expression: "day_key = to_char(day_dt, 'YYYYMMDD')::number(8, 0) OR day_key = 0"
+          name: day_key_matches_day_dt_format
+
+      - dbt_utils.expression_is_true:
+          expression: "year_num = extract(year from day_dt)"
+          name: year_num_matches_day_dt
+
+      - dbt_utils.expression_is_true:
+          expression: "month_num = extract(month from day_dt) OR day_key = 0"
+          name: month_num_matches_day_dt
