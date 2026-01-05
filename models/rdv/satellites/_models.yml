@@ -1,0 +1,487 @@
+version: 2
+
+models:
+  - name: sat_customer
+    description: |
+      **Raw Data Vault Satellite: Customer Descriptive Attributes**
+
+      Contains all descriptive, changing attributes about customers with full history.
+      Tracks customer profile changes over time including name, address, phone, balance, etc.
+
+      **Pattern**: Satellite (Data Vault 2.0)
+      **Grain**: One row per customer per change (Type 2 SCD)
+      **Parent Hub**: HUB_CUSTOMER
+      **Source**: stg_dv_customers (TPC-H CUSTOMER table)
+      **Load Strategy**: Incremental (insert on hashdiff change)
+
+      **Change Tracking**:
+      - HASHDIFF column detects attribute changes via MD5 hash
+      - Only inserts when customer attributes actually change
+      - Maintains complete audit trail of all historical states
+
+      **Temporal Queries**:
+      Use LOAD_DATE to retrieve customer state at any point in time:
+      ```sql
+      -- Customer state on 2024-01-15
+      SELECT * FROM sat_customer
+      WHERE customer_hk = '<hash>'
+        AND load_date <= '2024-01-15'
+      ORDER BY load_date DESC
+      LIMIT 1
+      ```
+    meta:
+      owner: "Data Engineering Team"
+      layer: "rdv"
+      entity_type: "satellite"
+      parent_hub: "hub_customer"
+
+    columns:
+      - name: customer_hk
+        description: |
+          **Foreign Key to HUB_CUSTOMER (Part of Composite PK)**
+
+          Links back to parent hub - identifies which customer these attributes describe.
+          Combined with LOAD_DATE forms the composite primary key.
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_customer')
+              field: customer_hk
+              config:
+                severity: error
+                error_if: ">0"
+
+      - name: hashdiff
+        description: |
+          **Change Detection Hash**
+
+          MD5 hash of all payload columns (descriptive attributes).
+          Used to detect when customer attributes have actually changed.
+
+          Formula: MD5(CUSTOMER_NAME || CUSTOMER_ADDRESS || ... all payload columns)
+
+          Purpose: Prevents duplicate records when source data hasn't changed
+          Benefit: Reduces storage and improves query performance
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: customer_name
+        description: |
+          **Customer Name**
+
+          Full name of the customer as recorded in source system.
+          Business-friendly column name (derived from C_NAME).
+
+          Change Tracking: Yes (part of hashdiff)
+          Historized: Yes (Type 2 SCD)
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: customer_address
+        description: |
+          **Customer Address**
+
+          Full mailing/physical address of customer.
+          Derived from C_ADDRESS.
+
+          Change Tracking: Yes
+          Historized: Yes
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: warn
+
+      - name: nation_key
+        description: |
+          **Nation Foreign Key**
+
+          References the nation/country where customer is located.
+          Links to TPC-H NATION table via N_NATIONKEY.
+
+          Change Tracking: Yes (customers can relocate)
+          Historized: Yes
+        data_type: number
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: source('TPC_H', 'NATION')
+              field: n_nationkey
+              config:
+                severity: warn
+
+      - name: customer_phone
+        description: |
+          **Customer Phone Number**
+
+          Contact phone number with international dialing code.
+          Format varies by nation (e.g., "15-555-0100").
+          Derived from C_PHONE.
+
+          Change Tracking: Yes
+          Historized: Yes
+        data_type: varchar
+
+      - name: account_balance
+        description: |
+          **Customer Account Balance**
+
+          Current account balance (can be positive or negative).
+          Represents outstanding balance or credit.
+          Derived from C_ACCTBAL.
+
+          Change Tracking: Yes (balance changes frequently)
+          Historized: Yes (full audit trail of balances)
+
+          Business Rule: Can be negative (customer has credit)
+        data_type: number
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: market_segment
+        description: |
+          **Market Segment Classification**
+
+          Business segmentation of customer (e.g., AUTOMOBILE, BUILDING, FURNITURE).
+          Used for targeted marketing and analysis.
+          Derived from C_MKTSEGMENT.
+
+          Change Tracking: Yes (customers can be reclassified)
+          Historized: Yes
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - accepted_values:
+              values: ["AUTOMOBILE", "BUILDING", "FURNITURE", "MACHINERY", "HOUSEHOLD"]
+              config:
+                severity: warn
+                error_if: ">100" # Allow some invalid values but warn
+
+      - name: customer_comment
+        description: |
+          **Customer Comments/Notes**
+
+          Free-text notes about the customer from source system.
+          Derived from C_COMMENT.
+
+          Change Tracking: Yes
+          Historized: Yes
+        data_type: varchar
+
+      - name: load_date
+        description: |
+          **Effective From Timestamp (Part of Composite PK)**
+
+          When this version of customer attributes became effective.
+          Combined with CUSTOMER_HK forms the composite primary key.
+
+          Used for:
+          - Temporal queries (customer state at point in time)
+          - Audit trail (when did attributes change)
+          - Change frequency analysis
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - dbt_utils.expression_is_true:
+              expression: "<= CURRENT_TIMESTAMP()"
+              config:
+                severity: error
+
+      - name: record_source
+        description: "Source system: TPC_H"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+  - name: sat_order
+    description: |
+      **Raw Data Vault Satellite: Order Descriptive Attributes**
+
+      Contains all descriptive, changing attributes about orders with full history.
+      Tracks order status changes, pricing, dates, and logistics information.
+
+      **Pattern**: Satellite (Data Vault 2.0)
+      **Grain**: One row per order per change (Type 2 SCD)
+      **Parent Hub**: HUB_ORDER
+      **Source**: stg_dv_orders (TPC-H ORDERS table)
+      **Load Strategy**: Incremental (insert on hashdiff change)
+
+      **Change Tracking**:
+      Primary changes tracked: ORDER_STATUS transitions (O → P → F)
+      - O: Open (order placed)
+      - P: Processing (being fulfilled)
+      - F: Finished (completed)
+
+      **Business Use Cases**:
+      - Order lifecycle tracking (status changes over time)
+      - Price adjustment history
+      - Delivery date changes
+      - Fulfillment process analysis
+    meta:
+      owner: "Data Engineering Team"
+      layer: "rdv"
+      entity_type: "satellite"
+      parent_hub: "hub_order"
+
+    columns:
+      - name: order_hk
+        description: |
+          **Foreign Key to HUB_ORDER (Part of Composite PK)**
+
+          Links to parent hub - identifies which order these attributes describe.
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_order')
+              field: order_hk
+              config:
+                severity: error
+                error_if: ">0"
+
+      - name: hashdiff
+        description: |
+          **Change Detection Hash**
+
+          MD5 hash of all payload columns.
+          Detects when order attributes have changed (especially status transitions).
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: customer_key
+        description: |
+          **Customer Reference (Denormalized)**
+
+          Customer who placed this order (natural key).
+          Denormalized from LINK_ORDER_CUSTOMER for query convenience.
+
+          Note: Authoritative customer-order relationship is in LINK_ORDER_CUSTOMER.
+          This is included in satellite for easy access.
+
+          Change Tracking: No (immutable - order ownership doesn't change)
+        data_type: number
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: order_status
+        description: |
+          **Order Status**
+
+          Current status of order in fulfillment lifecycle.
+          Derived from O_ORDERSTATUS.
+
+          Values:
+          - 'O': Open (newly placed)
+          - 'P': Processing (being fulfilled)
+          - 'F': Finished (delivered/completed)
+
+          Change Tracking: Yes (status transitions are primary change driver)
+          Historized: Yes (track order lifecycle)
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - accepted_values:
+              values: ["O", "P", "F"]
+              config:
+                severity: error
+
+      - name: total_price
+        description: |
+          **Order Total Price**
+
+          Total price of order (sum of all line items after discounts/taxes).
+          Derived from O_TOTALPRICE.
+
+          Change Tracking: Yes (price adjustments, corrections)
+          Historized: Yes
+
+          Business Rule: Should be > 0 for valid orders
+        data_type: number
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+              config:
+                severity: error
+
+      - name: order_date
+        description: |
+          **Order Placement Date**
+
+          Date when customer placed the order.
+          Derived from O_ORDERDATE.
+
+          Change Tracking: Rare (usually immutable, but corrections possible)
+          Historized: Yes
+        data_type: date
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - dbt_utils.expression_is_true:
+              expression: "<= CURRENT_DATE()"
+              config:
+                severity: warn
+
+      - name: order_priority
+        description: |
+          **Order Priority Level**
+
+          Business priority assigned to order (e.g., 1-URGENT, 2-HIGH, 3-MEDIUM, 4-LOW, 5-LOW).
+          Derived from O_ORDERPRIORITY.
+
+          Change Tracking: Yes (priority can be upgraded/downgraded)
+          Historized: Yes
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: clerk
+        description: |
+          **Order Clerk/Owner**
+
+          Identifier of clerk/employee responsible for processing order.
+          Format: "Clerk#000000XXX"
+          Derived from O_CLERK.
+
+          Change Tracking: Yes (orders can be reassigned)
+          Historized: Yes
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+      - name: ship_priority
+        description: |
+          **Shipping Priority**
+
+          Priority level for shipping/logistics (0 = standard, higher = expedited).
+          Derived from O_SHIPPRIORITY.
+
+          Change Tracking: Yes (can upgrade to expedited shipping)
+          Historized: Yes
+        data_type: number
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+              config:
+                severity: warn
+
+      - name: order_comment
+        description: |
+          **Order Comments/Notes**
+
+          Free-text notes about the order.
+          Derived from O_COMMENT.
+
+          Change Tracking: Yes
+          Historized: Yes
+        data_type: varchar
+
+      - name: load_date
+        description: |
+          **Effective From Timestamp (Part of Composite PK)**
+
+          When this version of order attributes became effective.
+          Tracks status transitions and attribute changes.
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - dbt_utils.expression_is_true:
+              expression: "<= CURRENT_TIMESTAMP()"
+              config:
+                severity: error
+
+      - name: record_source
+        description: "Source system: TPC_H"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+
+# Data Quality Tests at Satellite Level
+tests:
+  - name: test_sat_customer_no_duplicate_effective_dates
+    description: "Verify no customer has duplicate records for same LOAD_DATE"
+    test:
+      expression: |
+        SELECT
+          customer_hk,
+          load_date,
+          COUNT(*) as duplicate_count
+        FROM {{ ref('sat_customer') }}
+        GROUP BY customer_hk, load_date
+        HAVING COUNT(*) > 1
+      having: "COUNT(*) = 0"
+      config:
+        severity: error
+
+  - name: test_sat_order_no_duplicate_effective_dates
+    description: "Verify no order has duplicate records for same LOAD_DATE"
+    test:
+      expression: |
+        SELECT
+          order_hk,
+          load_date,
+          COUNT(*) as duplicate_count
+        FROM {{ ref('sat_order') }}
+        GROUP BY order_hk, load_date
+        HAVING COUNT(*) > 1
+      having: "COUNT(*) = 0"
+      config:
+        severity: error
+
+  - name: test_sat_customer_hashdiff_uniqueness_per_customer
+    description: "Verify hashdiff changes actually represent different attribute states"
+    test:
+      expression: |
+        SELECT
+          customer_hk,
+          hashdiff,
+          COUNT(*) as duplicate_hashdiff
+        FROM {{ ref('sat_customer') }}
+        GROUP BY customer_hk, hashdiff
+        HAVING COUNT(*) > 1
+      having: "COUNT(*) = 0"
+      config:
+        severity: warn
+        error_if: ">10" # Some duplicates OK during initial load

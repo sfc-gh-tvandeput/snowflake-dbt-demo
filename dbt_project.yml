@@ -220,6 +220,3 @@ tests:
     owner_email: "test@nowhere.com"
   +store_failures: true
   +limit: 1000
-  snowflake_demo:
-    unit:
-      +tags: ["unit_test"]

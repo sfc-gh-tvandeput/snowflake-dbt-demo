@@ -1,0 +1,249 @@
+version: 2
+
+models:
+  - name: link_order_customer
+    description: |
+      **Raw Data Vault Link: Order-Customer Relationship**
+
+      Captures the many-to-one relationship between orders and customers.
+      Records which customer placed which order at what time.
+
+      **Pattern**: Link (Data Vault 2.0)
+      **Grain**: One row per unique order-customer relationship
+      **Source**: stg_dv_orders (TPC-H ORDERS table)
+      **Load Strategy**: Incremental (insert-only, idempotent)
+
+      **Relationship Cardinality**: N:1 (Many orders to one customer)
+
+      **Connected Entities**:
+      - HUB_CUSTOMER (via CUSTOMER_HK)
+      - HUB_ORDER (via ORDER_HK)
+
+      **Business Context**:
+      This link enables queries like "which customer placed this order?" and
+      "what orders did this customer place?". The relationship is set at order
+      creation and doesn't change over time (immutable).
+    meta:
+      owner: "Data Engineering Team"
+      layer: "rdv"
+      entity_type: "link"
+      relationship_type: "N:1"
+
+    columns:
+      - name: customer_order_hk
+        description: |
+          **Composite Hash Key (Primary Key)**
+
+          MD5 hash of concatenated CUSTOMER_HK and ORDER_HK.
+          Uniquely identifies this specific customer-order relationship.
+
+          Format: MD5(CUSTOMER_HK || ORDER_HK)
+          Purpose: Fast joins, deduplication, referential integrity
+        data_type: binary
+        tests:
+          - unique:
+              config:
+                severity: error
+                error_if: ">0"
+          - not_null:
+              config:
+                severity: error
+
+      - name: customer_hk
+        description: |
+          **Foreign Key to HUB_CUSTOMER**
+
+          Hash key referencing the customer who placed this order.
+          Links to HUB_CUSTOMER.CUSTOMER_HK
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_customer')
+              field: customer_hk
+              config:
+                severity: error
+                error_if: ">0"
+
+      - name: order_hk
+        description: |
+          **Foreign Key to HUB_ORDER**
+
+          Hash key referencing the order in this relationship.
+          Links to HUB_ORDER.ORDER_HK
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_order')
+              field: order_hk
+              config:
+                severity: error
+                error_if: ">0"
+
+      - name: load_date
+        description: |
+          **Load Timestamp**
+
+          When this relationship was first recorded in the data warehouse.
+          Represents when we first learned that this customer placed this order.
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - dbt_utils.expression_is_true:
+              expression: "<= CURRENT_TIMESTAMP()"
+              config:
+                severity: error
+
+      - name: record_source
+        description: "Source system: TPC_H"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - accepted_values:
+              values: ["TPC_H"]
+              config:
+                severity: error
+
+  - name: link_lineitem_order
+    description: |
+      **Raw Data Vault Link: Line Item-Order Relationship**
+
+      Captures the one-to-many relationship between orders and their line items.
+      Records which line items belong to which order.
+
+      **Pattern**: Link (Data Vault 2.0)
+      **Grain**: One row per unique lineitem-order relationship
+      **Source**: stg_dv_lineitem (TPC-H LINEITEM table)
+      **Load Strategy**: Incremental (insert-only, idempotent)
+
+      **Relationship Cardinality**: N:1 (Many line items to one order)
+
+      **Connected Entities**:
+      - HUB_LINEITEM (via LINEITEM_HK) - Note: lineitem itself is a hub due to composite PK
+      - HUB_ORDER (via ORDER_HK)
+
+      **Business Context**:
+      Orders consist of multiple line items (products ordered with quantities, prices).
+      This link maintains the parent-child relationship between orders and their lines.
+      Essential for order detail queries and revenue calculations.
+    meta:
+      owner: "Data Engineering Team"
+      layer: "rdv"
+      entity_type: "link"
+      relationship_type: "N:1"
+
+    columns:
+      - name: lineitem_order_hk
+        description: |
+          **Composite Hash Key (Primary Key)**
+
+          MD5 hash of concatenated LINEITEM_HK and ORDER_HK.
+          Uniquely identifies this line item's relationship to its parent order.
+
+          Format: MD5(LINEITEM_HK || ORDER_HK)
+        data_type: binary
+        tests:
+          - unique:
+              config:
+                severity: error
+                error_if: ">0"
+          - not_null:
+              config:
+                severity: error
+
+      - name: lineitem_hk
+        description: |
+          **Foreign Key to HUB_LINEITEM (Composite Business Key)**
+
+          Hash key referencing the line item.
+          Note: Line items have composite business key (order_key, line_number)
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          # Note: Would reference hub_lineitem once created
+
+      - name: order_hk
+        description: |
+          **Foreign Key to HUB_ORDER**
+
+          Hash key referencing the parent order.
+          Links to HUB_ORDER.ORDER_HK
+        data_type: binary
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - relationships:
+              to: ref('hub_order')
+              field: order_hk
+              config:
+                severity: error
+                error_if: ">0"
+
+      - name: load_date
+        description: |
+          **Load Timestamp**
+
+          When this lineitem-order relationship was first captured.
+        data_type: timestamp_ntz
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - dbt_utils.expression_is_true:
+              expression: "<= CURRENT_TIMESTAMP()"
+              config:
+                severity: error
+
+      - name: record_source
+        description: "Source system: TPC_H"
+        data_type: varchar
+        tests:
+          - not_null:
+              config:
+                severity: error
+          - accepted_values:
+              values: ["TPC_H"]
+              config:
+                severity: error
+
+# Data Quality Tests at Link Level
+tests:
+  - name: test_link_order_customer_referential_integrity
+    description: "Verify all order-customer relationships reference valid hubs"
+    test:
+      expression: |
+        SELECT
+          COUNT(*) as orphan_count
+        FROM {{ ref('link_order_customer') }} lnk
+        LEFT JOIN {{ ref('hub_customer') }} cust ON lnk.customer_hk = cust.customer_hk
+        LEFT JOIN {{ ref('hub_order') }} ord ON lnk.order_hk = ord.order_hk
+        WHERE cust.customer_hk IS NULL
+           OR ord.order_hk IS NULL
+      having: "orphan_count = 0"
+      config:
+        severity: error
+
+  - name: test_link_lineitem_order_referential_integrity
+    description: "Verify all lineitem-order relationships reference valid orders"
+    test:
+      expression: |
+        SELECT
+          COUNT(*) as orphan_count
+        FROM {{ ref('link_lineitem_order') }} lnk
+        LEFT JOIN {{ ref('hub_order') }} ord ON lnk.order_hk = ord.order_hk
+        WHERE ord.order_hk IS NULL
+      having: "orphan_count = 0"
+      config:
+        severity: error

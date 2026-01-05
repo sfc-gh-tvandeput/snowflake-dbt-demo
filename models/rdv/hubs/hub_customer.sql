@@ -10,14 +10,14 @@
     Contains unique list of all customer business keys
     Loaded from: stg_dv_customers
 
-    Business Key: CUSTOMER_HK (hash of C_CUSTKEY)
-    Natural Key: C_CUSTKEY (Customer ID)
+    Business Key: CUSTOMER_HK (hash of CUSTOMER_KEY)
+    Natural Key: CUSTOMER_KEY (Customer ID)
 -#}
 
 {%- set yaml_metadata -%}
 source_model: "stg_dv_customers"
 src_pk: "CUSTOMER_HK"
-src_nk: "C_CUSTKEY"
+src_nk: "CUSTOMER_KEY"
 src_ldts: "LOAD_DATE"
 src_source: "RECORD_SOURCE"
 {%- endset -%}

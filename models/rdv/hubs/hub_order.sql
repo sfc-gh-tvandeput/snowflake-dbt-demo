@@ -10,14 +10,14 @@
     Contains unique list of all order business keys
     Loaded from: stg_dv_orders
 
-    Business Key: ORDER_HK (hash of O_ORDERKEY)
-    Natural Key: O_ORDERKEY (Order ID)
+    Business Key: ORDER_HK (hash of ORDER_KEY)
+    Natural Key: ORDER_KEY (Order ID)
 -#}
 
 {%- set yaml_metadata -%}
 source_model: "stg_dv_orders"
 src_pk: "ORDER_HK"
-src_nk: "O_ORDERKEY"
+src_nk: "ORDER_KEY"
 src_ldts: "LOAD_DATE"
 src_source: "RECORD_SOURCE"
 {%- endset -%}
