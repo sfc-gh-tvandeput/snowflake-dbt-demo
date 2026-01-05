@@ -16,9 +16,9 @@ sources:
       - name: dynamic_warehouse_assignment
         description: "Dynamic warehouse assignment recommendations"
 
-    # =============================================================================
-    # SNOWFLAKE STREAMS - Change Data Capture Sources
-    # =============================================================================
+  # =============================================================================
+  # SNOWFLAKE STREAMS - Change Data Capture Sources
+  # =============================================================================
   - name: SNOWFLAKE_TABLE_STREAM
     description: "Snowflake streams for change data capture patterns"
     schema: "{{target.schema}}"
@@ -27,9 +27,9 @@ sources:
       - name: customer_cdc_st
         description: "Customer change data capture stream"
 
-    # =============================================================================
-    # EXTERNAL DATA SOURCES - Economic and Financial Data
-    # =============================================================================
+  # =============================================================================
+  # EXTERNAL DATA SOURCES - Economic and Financial Data
+  # =============================================================================
   - name: ECONOMIC_ESSENTIALS
     description: "Cybersyn Economic Essentials data including FX rates and economic indicators"
     database: SNOWFLAKE_PUBLIC_DATA_FREE
@@ -59,9 +59,9 @@ sources:
           - name: VARIABLE_NAME
             description: "Human-readable identifier for the currency pair"
 
-    # =============================================================================
-    # TPC-H BENCHMARK DATA - Standard Business Intelligence Test Dataset
-    # =============================================================================
+  # =============================================================================
+  # TPC-H BENCHMARK DATA - Standard Business Intelligence Test Dataset
+  # =============================================================================
   - name: TPC_H
     description: "TPC-H benchmark dataset for business intelligence testing and demonstration"
     config:
@@ -93,9 +93,8 @@ sources:
             tests:
               - not_null
               - dbt_constraints.foreign_key:
-                  arguments:
-                    pk_table_name: source('TPC_H', 'REGION')
-                    pk_column_name: R_REGIONKEY
+                  pk_table_name: source('TPC_H', 'REGION')
+                  pk_column_name: R_REGIONKEY
           - name: N_COMMENT
             description: "Nation comments"
 
@@ -132,9 +131,8 @@ sources:
             tests:
               - not_null
               - dbt_constraints.foreign_key:
-                  arguments:
-                    pk_table_name: source('TPC_H', 'NATION')
-                    pk_column_name: N_NATIONKEY
+                  pk_table_name: source('TPC_H', 'NATION')
+                  pk_column_name: N_NATIONKEY
           - name: C_PHONE
             description: "Customer phone number"
           - name: C_ACCTBAL
@@ -146,8 +144,7 @@ sources:
             tests:
               - not_null
               - accepted_values:
-                  arguments:
-                    values: ["AUTOMOBILE", "BUILDING", "FURNITURE", "HOUSEHOLD", "MACHINERY"]
+                  values: ["AUTOMOBILE", "BUILDING", "FURNITURE", "HOUSEHOLD", "MACHINERY"]
           - name: C_COMMENT
             description: "Customer comments"
 
@@ -163,16 +160,14 @@ sources:
             tests:
               - not_null
               - dbt_constraints.foreign_key:
-                  arguments:
-                    pk_table_name: source('TPC_H', 'CUSTOMER')
-                    pk_column_name: C_CUSTKEY
+                  pk_table_name: source('TPC_H', 'CUSTOMER')
+                  pk_column_name: C_CUSTKEY
           - name: O_ORDERSTATUS
             description: "Order status"
             tests:
               - not_null
               - accepted_values:
-                  arguments:
-                    values: ["O", "F", "P"]
+                  values: ["O", "F", "P"]
           - name: O_TOTALPRICE
             description: "Total order price"
             tests:
@@ -200,9 +195,8 @@ sources:
             tests:
               - not_null
               - dbt_constraints.foreign_key:
-                  arguments:
-                    pk_table_name: source('TPC_H', 'ORDERS')
-                    pk_column_name: O_ORDERKEY
+                  pk_table_name: source('TPC_H', 'ORDERS')
+                  pk_column_name: O_ORDERKEY
           - name: L_LINENUMBER
             description: "Line number within order (part of composite PK)"
             tests:
@@ -212,17 +206,15 @@ sources:
             tests:
               - not_null
               - dbt_constraints.foreign_key:
-                  arguments:
-                    pk_table_name: source('TPC_H', 'PART')
-                    pk_column_name: P_PARTKEY
+                  pk_table_name: source('TPC_H', 'PART')
+                  pk_column_name: P_PARTKEY
           - name: L_SUPPKEY
             description: "Foreign key to suppliers"
             tests:
               - not_null
               - dbt_constraints.foreign_key:
-                  arguments:
-                    pk_table_name: source('TPC_H', 'SUPPLIER')
-                    pk_column_name: S_SUPPKEY
+                  pk_table_name: source('TPC_H', 'SUPPLIER')
+                  pk_column_name: S_SUPPKEY
           - name: L_QUANTITY
             description: "Quantity ordered"
             tests:
@@ -244,15 +236,13 @@ sources:
             tests:
               - not_null
               - accepted_values:
-                  arguments:
-                    values: ["A", "N", "R"]
+                  values: ["A", "N", "R"]
           - name: L_LINESTATUS
             description: "Line status"
             tests:
               - not_null
               - accepted_values:
-                  arguments:
-                    values: ["F", "O"]
+                  values: ["F", "O"]
           - name: L_SHIPDATE
             description: "Ship date"
             tests:
@@ -271,25 +261,21 @@ sources:
             description: "Ship mode"
           - name: L_COMMENT
             description: "Line item comments"
-        # Composite tests at table level
         tests:
           # Composite primary key test
           - dbt_utils.unique_combination_of_columns:
-              arguments:
-                combination_of_columns:
-                  - L_ORDERKEY
-                  - L_LINENUMBER
+              combination_of_columns:
+                - L_ORDERKEY
+                - L_LINENUMBER
           # Compound foreign key test (part-supplier relationship)
-          # Temporarily disabled due to dbt_constraints package issue with multi-column FKs
-          # - dbt_constraints.foreign_key:
-          #     arguments:
-          #       fk_column_names:
-          #       - L_PARTKEY
-          #       - L_SUPPKEY
-          #       pk_table_name: source('TPC_H', 'PARTSUPP')
-          #       pk_column_names:
-          #       - PS_PARTKEY
-          #       - PS_SUPPKEY
+          - dbt_constraints.foreign_key:
+              fk_column_names:
+                - L_PARTKEY
+                - L_SUPPKEY
+              pk_table_name: source('TPC_H', 'PARTSUPP')
+              pk_column_names:
+                - PS_PARTKEY
+                - PS_SUPPKEY
 
       - name: PART
         description: "Parts master data"
@@ -337,9 +323,8 @@ sources:
             tests:
               - not_null
               - dbt_constraints.foreign_key:
-                  arguments:
-                    pk_table_name: source('TPC_H', 'NATION')
-                    pk_column_name: N_NATIONKEY
+                  pk_table_name: source('TPC_H', 'NATION')
+                  pk_column_name: N_NATIONKEY
           - name: S_PHONE
             description: "Supplier phone"
           - name: S_ACCTBAL
@@ -357,17 +342,15 @@ sources:
             tests:
               - not_null
               - dbt_constraints.foreign_key:
-                  arguments:
-                    pk_table_name: source('TPC_H', 'PART')
-                    pk_column_name: P_PARTKEY
+                  pk_table_name: source('TPC_H', 'PART')
+                  pk_column_name: P_PARTKEY
           - name: PS_SUPPKEY
             description: "Part of compound primary key for this table"
             tests:
               - not_null
               - dbt_constraints.foreign_key:
-                  arguments:
-                    pk_table_name: source('TPC_H', 'SUPPLIER')
-                    pk_column_name: S_SUPPKEY
+                  pk_table_name: source('TPC_H', 'SUPPLIER')
+                  pk_column_name: S_SUPPKEY
           - name: PS_AVAILQTY
             description: "Available quantity"
             tests:
@@ -381,7 +364,6 @@ sources:
         tests:
           # Composite primary key test
           - dbt_utils.unique_combination_of_columns:
-              arguments:
-                combination_of_columns:
-                  - PS_PARTKEY
-                  - PS_SUPPKEY
+              combination_of_columns:
+                - PS_PARTKEY
+                - PS_SUPPKEY

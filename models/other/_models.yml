@@ -34,16 +34,14 @@ models:
         tests:
           - not_null
           - dbt_utils.expression_is_true:
-              arguments:
-                expression: ">= 0"
+              expression: ">= 0"
       - name: ROWS_PRODUCED
         description: "Number of rows produced by the query"
         data_type: number
         tests:
           - not_null
           - dbt_utils.expression_is_true:
-              arguments:
-                expression: ">= 0"
+              expression: ">= 0"
 
   - name: dynamic_warehouse_assignment
     description: >
@@ -66,6 +64,5 @@ models:
         tests:
           - not_null
           - dbt_utils.accepted_range:
-              arguments:
-                min_value: 0
-                max_value: 1
+              min_value: 0
+              max_value: 1
