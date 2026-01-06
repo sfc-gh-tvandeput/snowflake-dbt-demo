@@ -6,25 +6,52 @@
 ) -}}
 
 with hub_customer as (
-    select * from {{ ref('hub_customer') }}
+    select
+        customer_hk,
+        customer_key
+    from {{ ref('hub_customer') }}
 ),
 
 sat_customer as (
-    select * from {{ ref('sat_customer') }}
+    select
+        customer_hk,
+        customer_name,
+        customer_address,
+        customer_phone,
+        account_balance,
+        market_segment,
+        customer_comment,
+        nation_key,
+        load_date
+    from {{ ref('sat_customer') }}
     qualify row_number() over (partition by customer_hk order by load_date desc) = 1
 ),
 
 sat_customer_derived as (
-    select * from {{ ref('sat_customer_derived') }}
+    select
+        customer_hk,
+        total_orders,
+        open_orders,
+        has_orders_flag,
+        has_open_orders_flag,
+        value_segment,
+        load_date
+    from {{ ref('sat_customer_derived') }}
 ),
 
 sat_nation as (
-    select * from {{ ref('sat_nation') }}
+    select
+        nation_hk,
+        nation_name
+    from {{ ref('sat_nation') }}
     qualify row_number() over (partition by nation_hk order by load_date desc) = 1
 ),
 
 hub_nation as (
-    select * from {{ ref('hub_nation') }}
+    select
+        nation_hk,
+        nation_key
+    from {{ ref('hub_nation') }}
 ),
 
 enriched_customers as (

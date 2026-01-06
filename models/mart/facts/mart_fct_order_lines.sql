@@ -6,52 +6,106 @@
 ) -}}
 
 with hub_lineitem as (
-    select * from {{ ref('hub_lineitem') }}
+    select
+        lineitem_hk,
+        line_number
+    from {{ ref('hub_lineitem') }}
 ),
 
 sat_lineitem as (
-    select * from {{ ref('sat_lineitem') }}
+    select
+        lineitem_hk,
+        quantity,
+        extended_price,
+        discount,
+        tax,
+        return_flag,
+        line_status,
+        ship_date,
+        commit_date,
+        receipt_date,
+        ship_instruct,
+        ship_mode,
+        line_comment,
+        load_date
+    from {{ ref('sat_lineitem') }}
     qualify row_number() over (partition by lineitem_hk order by load_date desc) = 1
 ),
 
 sat_lineitem_enriched as (
-    select * from {{ ref('sat_lineitem_enriched') }}
+    select
+        lineitem_hk,
+        net_price,
+        total_price,
+        eur_conversion_rate,
+        total_price_eur,
+        load_date
+    from {{ ref('sat_lineitem_enriched') }}
 ),
 
 link_lineitem_order as (
-    select * from {{ ref('link_lineitem_order') }}
+    select
+        lineitem_hk,
+        order_hk
+    from {{ ref('link_lineitem_order') }}
 ),
 
 hub_order as (
-    select * from {{ ref('hub_order') }}
+    select
+        order_hk,
+        order_key
+    from {{ ref('hub_order') }}
 ),
 
 sat_order_calculated as (
-    select * from {{ ref('sat_order_calculated') }}
+    select
+        order_hk,
+        order_date,
+        order_status_desc,
+        load_date
+    from {{ ref('sat_order_calculated') }}
 ),
 
 link_lineitem_product as (
-    select * from {{ ref('link_lineitem_product') }}
+    select
+        lineitem_hk,
+        part_hk
+    from {{ ref('link_lineitem_product') }}
 ),
 
 hub_product as (
-    select * from {{ ref('hub_product') }}
+    select
+        part_hk,
+        part_key
+    from {{ ref('hub_product') }}
 ),
 
 link_lineitem_supplier as (
-    select * from {{ ref('link_lineitem_supplier') }}
+    select
+        lineitem_hk,
+        supplier_hk
+    from {{ ref('link_lineitem_supplier') }}
 ),
 
 hub_supplier as (
-    select * from {{ ref('hub_supplier') }}
+    select
+        supplier_hk,
+        supplier_key
+    from {{ ref('hub_supplier') }}
 ),
 
 link_order_customer as (
-    select * from {{ ref('link_order_customer') }}
+    select
+        order_hk,
+        customer_hk
+    from {{ ref('link_order_customer') }}
 ),
 
 hub_customer as (
-    select * from {{ ref('hub_customer') }}
+    select
+        customer_hk,
+        customer_key
+    from {{ ref('hub_customer') }}
 ),
 
 fact_order_lines as (

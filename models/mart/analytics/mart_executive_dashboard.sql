@@ -5,11 +5,23 @@
 ) -}}
 
 with orders as (
-    select * from {{ ref('mart_dim_orders') }}
+    select
+        order_key,
+        customer_key,
+        order_date,
+        order_year,
+        order_month,
+        order_quarter,
+        order_status,
+        total_price
+    from {{ ref('mart_dim_orders') }}
 ),
 
 order_lines as (
-    select * from {{ ref('mart_fct_order_lines') }}
+    select
+        order_key,
+        final_price
+    from {{ ref('mart_fct_order_lines') }}
 ),
 
 daily_metrics as (

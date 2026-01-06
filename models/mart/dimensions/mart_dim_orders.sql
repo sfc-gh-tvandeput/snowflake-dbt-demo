@@ -6,33 +6,66 @@
 ) -}}
 
 with hub_order as (
-    select * from {{ ref('hub_order') }}
+    select
+        order_hk,
+        order_key
+    from {{ ref('hub_order') }}
 ),
 
 sat_order as (
-    select * from {{ ref('sat_order') }}
+    select
+        order_hk,
+        order_status,
+        total_price,
+        order_date,
+        order_priority,
+        clerk,
+        ship_priority,
+        order_comment,
+        load_date
+    from {{ ref('sat_order') }}
     qualify row_number() over (partition by order_hk order by load_date desc) = 1
 ),
 
 sat_order_calculated as (
-    select * from {{ ref('sat_order_calculated') }}
+    select
+        order_hk,
+        order_status_desc,
+        order_year,
+        order_quarter,
+        order_month,
+        load_date
+    from {{ ref('sat_order_calculated') }}
 ),
 
 link_order_customer as (
-    select * from {{ ref('link_order_customer') }}
+    select
+        order_hk,
+        customer_hk
+    from {{ ref('link_order_customer') }}
 ),
 
 hub_customer as (
-    select * from {{ ref('hub_customer') }}
+    select
+        customer_hk,
+        customer_key
+    from {{ ref('hub_customer') }}
 ),
 
 sat_customer as (
-    select * from {{ ref('sat_customer') }}
+    select
+        customer_hk,
+        customer_name,
+        nation_key
+    from {{ ref('sat_customer') }}
     qualify row_number() over (partition by customer_hk order by load_date desc) = 1
 ),
 
 sat_customer_derived as (
-    select * from {{ ref('sat_customer_derived') }}
+    select
+        customer_hk,
+        value_segment
+    from {{ ref('sat_customer_derived') }}
 ),
 
 enriched_orders as (

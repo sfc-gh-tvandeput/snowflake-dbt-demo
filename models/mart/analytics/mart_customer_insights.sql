@@ -5,14 +5,20 @@
 ) -}}
 
 with customers as (
-    select * from {{ ref('mart_dim_customers') }}
+    select
+        customer_key,
+        customer_name,
+        account_balance,
+        market_segment,
+        nation_key,
+        value_segment
+    from {{ ref('mart_dim_customers') }}
 ),
 
 nations as (
     select
         hn.nation_key,
-        sn.nation_name,
-        sn.nation_comment
+        sn.nation_name
     from {{ ref('hub_nation') }} hn
     inner join {{ ref('sat_nation') }} sn
         on hn.nation_hk = sn.nation_hk
