@@ -15,19 +15,15 @@
 -#}
 
 {%- set yaml_metadata -%}
-source_model: "stg_dv_orders"
-src_pk: "CUSTOMER_ORDER_HK"
+source_model: stg_dv_orders
+src_pk: CUSTOMER_ORDER_HK
 src_fk:
     - "CUSTOMER_HK"
     - "ORDER_HK"
-src_ldts: "LOAD_DATE"
-src_source: "RECORD_SOURCE"
+src_ldts: LOAD_DATE
+src_source: RECORD_SOURCE
 {%- endset -%}
 
-{% set metadata_dict = fromyaml(yaml_metadata) %}
 
-{{ automate_dv.link(src_pk=metadata_dict['src_pk'],
-                     src_fk=metadata_dict['src_fk'],
-                     src_ldts=metadata_dict['src_ldts'],
-                     src_source=metadata_dict['src_source'],
-                     source_model=metadata_dict['source_model']) }}
+
+{{ automate_dv.link(**fromyaml(yaml_metadata)) }}
