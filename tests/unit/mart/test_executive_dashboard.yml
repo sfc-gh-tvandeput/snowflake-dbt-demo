@@ -1,0 +1,328 @@
+unit_tests:
+  - name: test_seven_day_avg_revenue_window
+    description: "Test 7-day rolling average revenue calculation"
+    model: mart_executive_dashboard
+    given:
+      - input: ref('mart_dim_orders')
+        rows:
+          - {
+              order_key: 1,
+              customer_key: 1,
+              order_date: "2024-01-01",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "F",
+              total_price: 100,
+            }
+          - {
+              order_key: 2,
+              customer_key: 1,
+              order_date: "2024-01-02",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "F",
+              total_price: 200,
+            }
+          - {
+              order_key: 3,
+              customer_key: 1,
+              order_date: "2024-01-03",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "F",
+              total_price: 300,
+            }
+          - {
+              order_key: 4,
+              customer_key: 1,
+              order_date: "2024-01-04",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "F",
+              total_price: 400,
+            }
+          - {
+              order_key: 5,
+              customer_key: 1,
+              order_date: "2024-01-05",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "F",
+              total_price: 500,
+            }
+          - {
+              order_key: 6,
+              customer_key: 1,
+              order_date: "2024-01-06",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "F",
+              total_price: 600,
+            }
+          - {
+              order_key: 7,
+              customer_key: 1,
+              order_date: "2024-01-07",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "F",
+              total_price: 700,
+            }
+          - {
+              order_key: 8,
+              customer_key: 1,
+              order_date: "2024-01-08",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "F",
+              total_price: 800,
+            }
+
+      - input: ref('mart_fct_order_lines')
+        rows:
+          - { order_key: 1, final_price: 100 }
+          - { order_key: 2, final_price: 200 }
+          - { order_key: 3, final_price: 300 }
+          - { order_key: 4, final_price: 400 }
+          - { order_key: 5, final_price: 500 }
+          - { order_key: 6, final_price: 600 }
+          - { order_key: 7, final_price: 700 }
+          - { order_key: 8, final_price: 800 }
+
+    expect:
+      rows:
+        - { metric_date: "2024-01-08", seven_day_avg_revenue: 500 }
+        - { metric_date: "2024-01-07", seven_day_avg_revenue: 400 }
+        - { metric_date: "2024-01-06", seven_day_avg_revenue: 350 }
+        - { metric_date: "2024-01-05", seven_day_avg_revenue: 300 }
+        - { metric_date: "2024-01-04", seven_day_avg_revenue: 250 }
+        - { metric_date: "2024-01-03", seven_day_avg_revenue: 200 }
+        - { metric_date: "2024-01-02", seven_day_avg_revenue: 150 }
+        - { metric_date: "2024-01-01", seven_day_avg_revenue: 100 }
+
+  - name: test_daily_revenue_growth_percentage
+    description: "Test daily revenue growth % calculation with zero/null handling"
+    model: mart_executive_dashboard
+    given:
+      - input: ref('mart_dim_orders')
+        rows:
+          - {
+              order_key: 1,
+              customer_key: 1,
+              order_date: "2024-01-01",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "F",
+              total_price: 100,
+            }
+          - {
+              order_key: 2,
+              customer_key: 1,
+              order_date: "2024-01-02",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "F",
+              total_price: 200,
+            }
+          - {
+              order_key: 3,
+              customer_key: 1,
+              order_date: "2024-01-03",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "F",
+              total_price: 150,
+            }
+
+      - input: ref('mart_fct_order_lines')
+        rows:
+          - { order_key: 1, final_price: 100 }
+          - { order_key: 2, final_price: 200 }
+          - { order_key: 3, final_price: 150 }
+
+    expect:
+      rows:
+        - { metric_date: "2024-01-03", daily_revenue_growth_pct: -25.0 }
+        - { metric_date: "2024-01-02", daily_revenue_growth_pct: 100.0 }
+        - { metric_date: "2024-01-01", daily_revenue_growth_pct: null }
+
+  - name: test_performance_rating_thresholds
+    description: "Test performance rating classification based on 7-day average"
+    model: mart_executive_dashboard
+    given:
+      - input: ref('mart_dim_orders')
+        rows:
+          - {
+              order_key: 1,
+              customer_key: 1,
+              order_date: "2024-01-01",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "F",
+              total_price: 100,
+            }
+          - {
+              order_key: 2,
+              customer_key: 1,
+              order_date: "2024-01-02",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "F",
+              total_price: 100,
+            }
+          - {
+              order_key: 3,
+              customer_key: 1,
+              order_date: "2024-01-03",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "F",
+              total_price: 121,
+            }
+          - {
+              order_key: 4,
+              customer_key: 1,
+              order_date: "2024-01-04",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "F",
+              total_price: 111,
+            }
+          - {
+              order_key: 5,
+              customer_key: 1,
+              order_date: "2024-01-05",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "F",
+              total_price: 100,
+            }
+          - {
+              order_key: 6,
+              customer_key: 1,
+              order_date: "2024-01-06",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "F",
+              total_price: 50,
+            }
+
+      - input: ref('mart_fct_order_lines')
+        rows:
+          - { order_key: 1, final_price: 100 }
+          - { order_key: 2, final_price: 100 }
+          - { order_key: 3, final_price: 121 }
+          - { order_key: 4, final_price: 111 }
+          - { order_key: 5, final_price: 100 }
+          - { order_key: 6, final_price: 50 }
+
+    expect:
+      rows:
+        - { metric_date: "2024-01-06", performance_rating: "Below Average" }
+        - { metric_date: "2024-01-05", performance_rating: "Average" }
+        - { metric_date: "2024-01-04", performance_rating: "Average" }
+        - { metric_date: "2024-01-03", performance_rating: "Good" }
+        - { metric_date: "2024-01-02", performance_rating: "Average" }
+        - { metric_date: "2024-01-01", performance_rating: "Average" }
+
+  - name: test_fulfillment_rate_calculation
+    description: "Test fulfillment rate % with division by zero handling"
+    model: mart_executive_dashboard
+    given:
+      - input: ref('mart_dim_orders')
+        rows:
+          - {
+              order_key: 1,
+              customer_key: 1,
+              order_date: "2024-01-01",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "F",
+              total_price: 100,
+            }
+          - {
+              order_key: 2,
+              customer_key: 1,
+              order_date: "2024-01-01",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "O",
+              total_price: 100,
+            }
+          - {
+              order_key: 3,
+              customer_key: 1,
+              order_date: "2024-01-02",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "F",
+              total_price: 300,
+            }
+          - {
+              order_key: 4,
+              customer_key: 1,
+              order_date: "2024-01-03",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "O",
+              total_price: 400,
+            }
+
+      - input: ref('mart_fct_order_lines')
+        rows:
+          - { order_key: 1, final_price: 100 }
+          - { order_key: 2, final_price: 100 }
+          - { order_key: 3, final_price: 300 }
+          - { order_key: 4, final_price: 400 }
+
+    expect:
+      rows:
+        - { metric_date: "2024-01-03", fulfillment_rate_pct: 0.0 }
+        - { metric_date: "2024-01-02", fulfillment_rate_pct: 100.0 }
+        - { metric_date: "2024-01-01", fulfillment_rate_pct: 50.0 }
+
+  - name: test_edge_case_first_day_no_lag
+    description: "Test first day in dataset with no previous day for lag calculation"
+    model: mart_executive_dashboard
+    given:
+      - input: ref('mart_dim_orders')
+        rows:
+          - {
+              order_key: 1,
+              customer_key: 1,
+              order_date: "2024-01-01",
+              order_year: 2024,
+              order_month: 1,
+              order_quarter: 1,
+              order_status: "F",
+              total_price: 100,
+            }
+
+      - input: ref('mart_fct_order_lines')
+        rows:
+          - { order_key: 1, final_price: 100 }
+
+    expect:
+      rows:
+        - { metric_date: "2024-01-01", daily_revenue_growth_pct: null, seven_day_avg_revenue: 100 }

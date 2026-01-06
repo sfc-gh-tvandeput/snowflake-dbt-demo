@@ -1,0 +1,299 @@
+unit_tests:
+  - name: test_country_ranking_logic
+    description: "Test country_ranking classification: TOP_10_IN_NATION, TOP_10_PERCENT, STANDARD"
+    model: mart_customer_insights
+    given:
+      - input: ref('mart_dim_customers')
+        rows:
+          - {
+              customer_key: 1,
+              customer_name: "Customer 1",
+              account_balance: 10000,
+              market_segment: "AUTOMOBILE",
+              nation_key: 1,
+              value_segment: "PREMIUM",
+            }
+          - {
+              customer_key: 2,
+              customer_name: "Customer 2",
+              account_balance: 9000,
+              market_segment: "AUTOMOBILE",
+              nation_key: 1,
+              value_segment: "HIGH_VALUE",
+            }
+          - {
+              customer_key: 3,
+              customer_name: "Customer 3",
+              account_balance: 8000,
+              market_segment: "BUILDING",
+              nation_key: 1,
+              value_segment: "HIGH_VALUE",
+            }
+          - {
+              customer_key: 4,
+              customer_name: "Customer 4",
+              account_balance: 7000,
+              market_segment: "BUILDING",
+              nation_key: 1,
+              value_segment: "MEDIUM_VALUE",
+            }
+          - {
+              customer_key: 5,
+              customer_name: "Customer 5",
+              account_balance: 6000,
+              market_segment: "FURNITURE",
+              nation_key: 1,
+              value_segment: "MEDIUM_VALUE",
+            }
+          - {
+              customer_key: 6,
+              customer_name: "Customer 6",
+              account_balance: 5000,
+              market_segment: "FURNITURE",
+              nation_key: 1,
+              value_segment: "MEDIUM_VALUE",
+            }
+          - {
+              customer_key: 7,
+              customer_name: "Customer 7",
+              account_balance: 4000,
+              market_segment: "MACHINERY",
+              nation_key: 1,
+              value_segment: "MEDIUM_VALUE",
+            }
+          - {
+              customer_key: 8,
+              customer_name: "Customer 8",
+              account_balance: 3000,
+              market_segment: "MACHINERY",
+              nation_key: 1,
+              value_segment: "LOW_VALUE",
+            }
+          - {
+              customer_key: 9,
+              customer_name: "Customer 9",
+              account_balance: 2000,
+              market_segment: "HOUSEHOLD",
+              nation_key: 1,
+              value_segment: "LOW_VALUE",
+            }
+          - {
+              customer_key: 10,
+              customer_name: "Customer 10",
+              account_balance: 1000,
+              market_segment: "HOUSEHOLD",
+              nation_key: 1,
+              value_segment: "LOW_VALUE",
+            }
+          - {
+              customer_key: 11,
+              customer_name: "Customer 11",
+              account_balance: 900,
+              market_segment: "AUTOMOBILE",
+              nation_key: 1,
+              value_segment: "LOW_VALUE",
+            }
+          - {
+              customer_key: 12,
+              customer_name: "Customer 12",
+              account_balance: 800,
+              market_segment: "AUTOMOBILE",
+              nation_key: 1,
+              value_segment: "LOW_VALUE",
+            }
+          - {
+              customer_key: 20,
+              customer_name: "Customer 20",
+              account_balance: 5000,
+              market_segment: "BUILDING",
+              nation_key: 2,
+              value_segment: "PREMIUM",
+            }
+          - {
+              customer_key: 21,
+              customer_name: "Customer 21",
+              account_balance: 4000,
+              market_segment: "BUILDING",
+              nation_key: 2,
+              value_segment: "HIGH_VALUE",
+            }
+          - {
+              customer_key: 22,
+              customer_name: "Customer 22",
+              account_balance: 3000,
+              market_segment: "FURNITURE",
+              nation_key: 2,
+              value_segment: "MEDIUM_VALUE",
+            }
+
+      - input: ref('hub_nation')
+        rows:
+          - { nation_key: 1, nation_hk: "A1" }
+          - { nation_key: 2, nation_hk: "A2" }
+
+      - input: ref('sat_nation')
+        rows:
+          - { nation_hk: "A1", nation_name: "FRANCE" }
+          - { nation_hk: "A2", nation_name: "GERMANY" }
+
+    expect:
+      rows:
+        - { customer_key: 1, country_ranking: "TOP_10_IN_NATION" }
+        - { customer_key: 2, country_ranking: "TOP_10_IN_NATION" }
+        - { customer_key: 3, country_ranking: "TOP_10_IN_NATION" }
+        - { customer_key: 4, country_ranking: "TOP_10_IN_NATION" }
+        - { customer_key: 5, country_ranking: "TOP_10_IN_NATION" }
+        - { customer_key: 6, country_ranking: "TOP_10_IN_NATION" }
+        - { customer_key: 7, country_ranking: "TOP_10_IN_NATION" }
+        - { customer_key: 8, country_ranking: "TOP_10_IN_NATION" }
+        - { customer_key: 9, country_ranking: "TOP_10_IN_NATION" }
+        - { customer_key: 10, country_ranking: "TOP_10_IN_NATION" }
+        - { customer_key: 11, country_ranking: "STANDARD" }
+        - { customer_key: 12, country_ranking: "STANDARD" }
+        - { customer_key: 20, country_ranking: "TOP_10_IN_NATION" }
+        - { customer_key: 21, country_ranking: "TOP_10_IN_NATION" }
+        - { customer_key: 22, country_ranking: "TOP_10_IN_NATION" }
+
+  - name: test_statistical_classification
+    description: "Test statistical_classification: ABOVE_AVERAGE, BELOW_AVERAGE, AVERAGE"
+    model: mart_customer_insights
+    given:
+      - input: ref('mart_dim_customers')
+        rows:
+          - {
+              customer_key: 1,
+              customer_name: "Above Avg",
+              account_balance: 8000,
+              market_segment: "AUTOMOBILE",
+              nation_key: 1,
+              value_segment: "HIGH_VALUE",
+            }
+          - {
+              customer_key: 2,
+              customer_name: "Below Avg",
+              account_balance: 2000,
+              market_segment: "BUILDING",
+              nation_key: 1,
+              value_segment: "LOW_VALUE",
+            }
+          - {
+              customer_key: 3,
+              customer_name: "Exactly Avg",
+              account_balance: 5000,
+              market_segment: "FURNITURE",
+              nation_key: 1,
+              value_segment: "MEDIUM_VALUE",
+            }
+
+      - input: ref('hub_nation')
+        rows:
+          - { nation_key: 1, nation_hk: "A1" }
+
+      - input: ref('sat_nation')
+        rows:
+          - { nation_hk: "A1", nation_name: "FRANCE" }
+
+    expect:
+      rows:
+        - { customer_key: 1, statistical_classification: "ABOVE_AVERAGE" }
+        - { customer_key: 2, statistical_classification: "BELOW_AVERAGE" }
+        - { customer_key: 3, statistical_classification: "AVERAGE" }
+
+  - name: test_risk_category_logic
+    description: "Test risk_category: Credit Risk, Retention Risk, Performance Risk, Low Risk"
+    model: mart_customer_insights
+    given:
+      - input: ref('mart_dim_customers')
+        rows:
+          - {
+              customer_key: 1,
+              customer_name: "Credit Risk",
+              account_balance: -500,
+              market_segment: "AUTOMOBILE",
+              nation_key: 1,
+              value_segment: "MEDIUM_VALUE",
+            }
+          - {
+              customer_key: 2,
+              customer_name: "Retention Risk",
+              account_balance: 2000,
+              market_segment: "BUILDING",
+              nation_key: 1,
+              value_segment: "LOW_VALUE",
+            }
+          - {
+              customer_key: 3,
+              customer_name: "Performance Risk",
+              account_balance: 1000,
+              market_segment: "FURNITURE",
+              nation_key: 1,
+              value_segment: "MEDIUM_VALUE",
+            }
+          - {
+              customer_key: 4,
+              customer_name: "Low Risk",
+              account_balance: 8000,
+              market_segment: "MACHINERY",
+              nation_key: 1,
+              value_segment: "HIGH_VALUE",
+            }
+          - {
+              customer_key: 5,
+              customer_name: "Filler High Balance",
+              account_balance: 6000,
+              market_segment: "HOUSEHOLD",
+              nation_key: 1,
+              value_segment: "HIGH_VALUE",
+            }
+
+      - input: ref('hub_nation')
+        rows:
+          - { nation_key: 1, nation_hk: "A1" }
+
+      - input: ref('sat_nation')
+        rows:
+          - { nation_hk: "A1", nation_name: "FRANCE" }
+
+    expect:
+      rows:
+        - { customer_key: 1, risk_category: "Credit Risk" }
+        - { customer_key: 2, risk_category: "Retention Risk" }
+        - { customer_key: 3, risk_category: "Performance Risk" }
+        - { customer_key: 4, risk_category: "Low Risk" }
+        - { customer_key: 5, risk_category: "Low Risk" }
+
+  - name: test_edge_cases_single_customer_null_nation
+    description: "Test edge cases: single customer in country, null nation_key"
+    model: mart_customer_insights
+    given:
+      - input: ref('mart_dim_customers')
+        rows:
+          - {
+              customer_key: 1,
+              customer_name: "Only One",
+              account_balance: 5000,
+              market_segment: "AUTOMOBILE",
+              nation_key: 1,
+              value_segment: "MEDIUM_VALUE",
+            }
+          - {
+              customer_key: 2,
+              customer_name: "No Nation",
+              account_balance: 3000,
+              market_segment: "BUILDING",
+              nation_key: null,
+              value_segment: "LOW_VALUE",
+            }
+
+      - input: ref('hub_nation')
+        rows:
+          - { nation_key: 1, nation_hk: "A1" }
+
+      - input: ref('sat_nation')
+        rows:
+          - { nation_hk: "A1", nation_name: "FRANCE" }
+
+    expect:
+      rows:
+        - { customer_key: 1, country_ranking: "TOP_10_IN_NATION", rank_in_country: 1 }
+        - { customer_key: 2, country_ranking: "TOP_10_IN_NATION", rank_in_country: 1 }

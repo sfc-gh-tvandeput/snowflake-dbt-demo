@@ -56,31 +56,31 @@ executive_kpis as (
         daily_orders as total_orders,
         round(daily_avg_order_value, 2) as avg_order_value,
         daily_active_customers as active_customers,
-        seven_day_avg_revenue as "7-Day Average Revenue",
+        seven_day_avg_revenue,
         case
             when prev_day_revenue > 0
             then round(((daily_revenue - prev_day_revenue) / prev_day_revenue) * 100, 2)
             else null
-        end as "Daily Revenue Growth %",
-        round(daily_revenue / nullif(daily_orders, 0), 2) as "Revenue per Order",
-        round(daily_revenue / nullif(daily_active_customers, 0), 2) as "Revenue per Customer",
-        round((fulfilled_revenue / nullif(daily_revenue, 0)) * 100, 1) as "Fulfillment Rate %",
-        round((open_revenue / nullif(daily_revenue, 0)) * 100, 1) as "Open Orders %",
-        round((partial_revenue / nullif(daily_revenue, 0)) * 100, 1) as "Partial Orders %",
+        end as daily_revenue_growth_pct,
+        round(daily_revenue / nullif(daily_orders, 0), 2) as revenue_per_order,
+        round(daily_revenue / nullif(daily_active_customers, 0), 2) as revenue_per_customer,
+        round((fulfilled_revenue / nullif(daily_revenue, 0)) * 100, 1) as fulfillment_rate_pct,
+        round((open_revenue / nullif(daily_revenue, 0)) * 100, 1) as open_orders_pct,
+        round((partial_revenue / nullif(daily_revenue, 0)) * 100, 1) as partial_orders_pct,
         case
             when daily_revenue > seven_day_avg_revenue * 1.2 then 'Excellent'
             when daily_revenue > seven_day_avg_revenue * 1.1 then 'Good'
             when daily_revenue > seven_day_avg_revenue * 0.9 then 'Average'
             else 'Below Average'
-        end as "Performance Rating",
+        end as performance_rating,
         case
             when daily_revenue > prev_day_revenue then '↗️ Increasing'
             when daily_revenue < prev_day_revenue then '↘️ Decreasing'
             else '➡️ Stable'
-        end as "Trend",
-        order_year as "Year",
-        order_quarter as "Quarter",
-        order_month as "Month"
+        end as trend,
+        order_year as year,
+        order_quarter as quarter,
+        order_month as month
 
     from daily_metrics
 )
