@@ -1,0 +1,233 @@
+version: 2
+
+models:
+  - name: mart_customer_insights
+    description:
+      "Customer analytics view providing segmentation, rankings, and risk analysis. Sources from
+      mart dimensions (mart_dim_customers) and RDV models (hub_nation, sat_nation). Provides
+      comprehensive customer insights with country-level comparisons and risk assessment."
+    config:
+      alias: customer_insights
+    columns:
+      - name: customer_key
+        description: "Primary key - Customer business key"
+        tests:
+          - unique
+          - not_null
+
+      - name: customer_name
+        description: "Customer full name"
+        tests:
+          - not_null
+
+      - name: country
+        description: "Country name (from nation dimension)"
+        tests:
+          - not_null
+
+      - name: account_balance
+        description: "Current account balance"
+        tests:
+          - not_null
+
+      - name: country_average_balance
+        description: "Average account balance for customers in this country"
+        tests:
+          - not_null
+
+      - name: balance_vs_country_average
+        description: "Difference between customer balance and country average"
+        tests:
+          - not_null
+
+      - name: customer_tier
+        description:
+          "Customer tier based on balance percentile (PREMIUM/High Value/Medium Value/Standard)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["PREMIUM", "High Value", "Medium Value", "Standard"]
+
+      - name: market_segment
+        description: "Market segment classification"
+        tests:
+          - not_null
+
+      - name: country_ranking
+        description:
+          "Customer ranking within their country (TOP_10_IN_NATION/TOP_10_PERCENT/STANDARD)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["TOP_10_IN_NATION", "TOP_10_PERCENT", "STANDARD"]
+
+      - name: statistical_classification
+        description:
+          "Statistical classification based on standard deviation
+          (ABOVE_AVERAGE/AVERAGE/BELOW_AVERAGE)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["ABOVE_AVERAGE", "AVERAGE", "BELOW_AVERAGE"]
+
+      - name: balance_percentile_score
+        description: "Balance percentile score (0-100)"
+        tests:
+          - not_null
+
+      - name: rank_in_country
+        description: "Rank of customer within their country based on balance"
+        tests:
+          - not_null
+
+      - name: customer_classification
+        description:
+          "Business classification (VIP Customer/High Value Customer/Above Average Customer/Standard
+          Customer)"
+        tests:
+          - not_null
+          - accepted_values:
+              values:
+                [
+                  "VIP Customer",
+                  "High Value Customer",
+                  "Above Average Customer",
+                  "Standard Customer",
+                ]
+
+      - name: risk_category
+        description: "Risk assessment (Credit Risk/Retention Risk/Performance Risk/Low Risk)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["Credit Risk", "Retention Risk", "Performance Risk", "Low Risk"]
+
+      - name: last_updated
+        description: "Timestamp when this record was last updated"
+        tests:
+          - not_null
+
+    tests:
+      - dbt_utils.expression_is_true:
+          expression: "balance_percentile_score >= 0 AND balance_percentile_score <= 100"
+          name: balance_percentile_score_within_valid_range
+
+      - dbt_utils.expression_is_true:
+          expression: "rank_in_country >= 1"
+          name: rank_in_country_positive
+
+      - dbt_utils.expression_is_true:
+          expression:
+            "(customer_tier = 'PREMIUM' AND balance_percentile_score >= 89) OR (customer_tier =
+            'HIGH_VALUE' AND balance_percentile_score >= 69 AND balance_percentile_score < 91) OR
+            (customer_tier NOT IN ('PREMIUM', 'HIGH_VALUE'))"
+          name: customer_tier_consistent_with_percentile
+
+      - dbt_utils.expression_is_true:
+          expression:
+            "(risk_category = 'Credit Risk' AND account_balance < 0) OR (risk_category = 'Retention
+            Risk' AND customer_tier = 'LOW_VALUE' AND account_balance >= 0) OR (risk_category =
+            'Performance Risk' AND balance_vs_country_average < -1000 AND account_balance >= 0 AND
+            customer_tier != 'LOW_VALUE') OR (risk_category = 'Low Risk')"
+          name: risk_category_consistent_with_balance_metrics
+
+  - name: mart_executive_dashboard
+    description:
+      "Executive dashboard providing daily KPIs, revenue metrics, fulfillment rates, and performance
+      indicators. Sources from mart dimensions (mart_dim_orders) and facts (mart_fct_order_lines).
+      Provides comprehensive daily metrics with trend analysis and performance ratings."
+    config:
+      alias: executive_dashboard
+    columns:
+      - name: metric_date
+        description: "Date for which metrics are calculated"
+        tests:
+          - not_null
+          - unique
+
+      - name: total_revenue
+        description: "Total revenue for the day"
+        tests:
+          - not_null
+
+      - name: total_orders
+        description: "Total number of orders for the day"
+        tests:
+          - not_null
+
+      - name: avg_order_value
+        description: "Average order value for the day"
+
+      - name: active_customers
+        description: "Count of active customers for the day"
+        tests:
+          - not_null
+
+      - name: "7-Day Average Revenue"
+        description: "Rolling 7-day average revenue"
+
+      - name: "Daily Revenue Growth %"
+        description: "Day-over-day revenue growth percentage"
+
+      - name: "Revenue per Order"
+        description: "Average revenue per order"
+
+      - name: "Revenue per Customer"
+        description: "Average revenue per customer"
+
+      - name: "Fulfillment Rate %"
+        description: "Percentage of revenue from fulfilled orders"
+
+      - name: "Open Orders %"
+        description: "Percentage of revenue from open orders"
+
+      - name: "Partial Orders %"
+        description: "Percentage of revenue from partially fulfilled orders"
+
+      - name: '"Performance Rating"'
+        description:
+          "Performance rating based on comparison to 7-day average (Excellent/Good/Average/Below
+          Average)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["Excellent", "Good", "Average", "Below Average"]
+
+      - name: '"Trend"'
+        description: "Trend indicator (↗️ Increasing/↘️ Decreasing/➡️ Stable)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["↗️ Increasing", "↘️ Decreasing", "➡️ Stable"]
+
+      - name: '"Year"'
+        description: "Year extracted from metric_date"
+        tests:
+          - not_null
+
+      - name: '"Quarter"'
+        description: "Quarter extracted from metric_date"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4]
+
+      - name: '"Month"'
+        description: "Month extracted from metric_date"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+    tests:
+      - dbt_utils.expression_is_true:
+          expression: "total_revenue >= 0"
+          name: total_revenue_non_negative
+
+      - dbt_utils.expression_is_true:
+          expression: "total_orders >= 0"
+          name: total_orders_non_negative
+
+      - dbt_utils.expression_is_true:
+          expression: "active_customers >= 0"
+          name: active_customers_non_negative
