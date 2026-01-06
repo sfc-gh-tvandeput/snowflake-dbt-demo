@@ -1,0 +1,184 @@
+version: 2
+
+models:
+  - name: mart_fct_order_lines
+    description:
+      "Fact table containing order line item transactions sourced from Data Vault. Includes all
+      measures (quantity, price, discount, tax), calculated metrics (discounted_price, final_price),
+      FX conversion to EUR, and dimension foreign keys. Composite key on [order_key, line_number].
+      Replicates legacy gold.fact_order_line structure with 100% compatibility."
+    config:
+      alias: fct_order_lines
+    columns:
+      - name: order_key
+        description: "Foreign key to order dimension (part of composite key)"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('hub_order')
+              field: order_key
+
+      - name: line_number
+        description: "Line number within order (part of composite key)"
+        tests:
+          - not_null
+
+      - name: part_key
+        description: "Foreign key to product/part dimension"
+        tests:
+          - relationships:
+              to: ref('hub_product')
+              field: part_key
+
+      - name: supplier_key
+        description: "Foreign key to supplier dimension"
+        tests:
+          - relationships:
+              to: ref('hub_supplier')
+              field: supplier_key
+
+      - name: customer_key
+        description: "Foreign key to customer dimension"
+        tests:
+          - relationships:
+              to: ref('mart_dim_customers')
+              field: customer_key
+
+      - name: quantity
+        description: "Quantity ordered"
+        tests:
+          - not_null
+
+      - name: extended_price
+        description: "Extended price (unit price * quantity)"
+        tests:
+          - not_null
+
+      - name: discount
+        description: "Discount rate (0-1)"
+        tests:
+          - not_null
+
+      - name: tax
+        description: "Tax rate (0-1)"
+        tests:
+          - not_null
+
+      - name: discounted_price
+        description: "Price after discount = extended_price * (1 - discount)"
+        tests:
+          - not_null
+
+      - name: final_price
+        description: "Final price with tax = discounted_price * (1 + tax)"
+        tests:
+          - not_null
+
+      - name: eur_conversion_rate
+        description: "USD to EUR conversion rate (from FX rates table)"
+        tests:
+          - not_null
+
+      - name: final_price_eur
+        description: "Final price converted to EUR = final_price * eur_conversion_rate"
+        tests:
+          - not_null
+
+      - name: return_flag
+        description: "Return flag (R/A/N)"
+        tests:
+          - not_null
+
+      - name: line_status
+        description: "Line status code (O/F)"
+        tests:
+          - not_null
+
+      - name: ship_date
+        description: "Date line item was shipped"
+
+      - name: commit_date
+        description: "Committed delivery date"
+
+      - name: receipt_date
+        description: "Date line item was received"
+
+      - name: ship_instruct
+        description: "Shipping instructions"
+
+      - name: ship_mode
+        description: "Shipping mode"
+
+      - name: line_comment
+        description: "Line item comments"
+
+      - name: order_date
+        description: "Order date (denormalized from order dimension)"
+
+      - name: order_status_desc
+        description: "Order status description (denormalized from order dimension)"
+
+      - name: _loaded_at
+        description: "Audit timestamp - when record was loaded to RDV/BDV"
+
+      - name: _updated_at
+        description: "Audit timestamp - when record was updated in mart"
+        tests:
+          - not_null
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - order_key
+            - line_number
+          name: unique_composite_key_order_line
+
+      - dbt_utils.expression_is_true:
+          expression: "abs(discounted_price - (extended_price * (1 - discount))) < 0.01"
+          name: discounted_price_calculation_accurate
+
+      - dbt_utils.expression_is_true:
+          expression: "abs(final_price - (extended_price * (1 - discount) * (1 + tax))) < 0.01"
+          name: final_price_calculation_accurate
+
+      - dbt_utils.expression_is_true:
+          expression: "abs(final_price_eur - (final_price * eur_conversion_rate)) < 0.01"
+          name: final_price_eur_calculation_accurate
+
+      - dbt_utils.expression_is_true:
+          expression: "discount >= 0 AND discount <= 1"
+          name: discount_within_valid_range
+
+      - dbt_utils.expression_is_true:
+          expression: "tax >= 0 AND tax <= 1"
+          name: tax_within_valid_range
+
+  - name: mart_fact_order_line_pivot
+    description:
+      "Pivoted fact table showing supplier-product quantity by shipping year. Dynamically generates
+      columns for each year present in the data. Replicates legacy gold.fact_order_line_pivot
+      structure."
+    config:
+      alias: fact_order_line_pivot
+    columns:
+      - name: supplier_key
+        description: "Supplier business key"
+        tests:
+          - not_null
+
+      - name: part_key
+        description: "Product/part business key"
+        tests:
+          - not_null
+
+      - name: dbt_last_update_ts
+        description: "Timestamp when this view was last refreshed"
+        tests:
+          - not_null
+
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - supplier_key
+            - part_key
+          name: unique_supplier_part_combination

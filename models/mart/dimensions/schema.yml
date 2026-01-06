@@ -84,3 +84,242 @@ models:
       - dbt_utils.expression_is_true:
           expression: "month_num = extract(month from day_dt) OR day_key = 0"
           name: month_num_matches_day_dt
+
+  - name: mart_dim_customers
+    description:
+      "Customer dimension table sourced from Data Vault (BDV SAT_CUSTOMER_DERIVED). Contains
+      customer attributes, geographic information, order statistics, and value segmentation.
+      Replicates legacy gold.dim_customers structure with 100% compatibility."
+    config:
+      alias: dim_customers
+    columns:
+      - name: customer_key
+        description: "Primary key - Customer business key"
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('hub_customer')
+              field: customer_key
+
+      - name: customer_name
+        description: "Customer full name"
+        tests:
+          - not_null
+
+      - name: customer_address
+        description: "Customer mailing address"
+
+      - name: customer_phone
+        description: "Customer contact phone number"
+
+      - name: account_balance
+        description: "Current account balance (can be negative)"
+        tests:
+          - not_null
+
+      - name: market_segment
+        description: "Market segment classification"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["AUTOMOBILE", "BUILDING", "FURNITURE", "HOUSEHOLD", "MACHINERY"]
+
+      - name: customer_comment
+        description: "Customer notes and comments"
+
+      - name: nation_key
+        description: "Foreign key to nation dimension"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('hub_nation')
+              field: nation_key
+
+      - name: nation_name
+        description: "Country name"
+
+      - name: region_key
+        description: "Foreign key to region (denormalized from nation)"
+
+      - name: total_orders
+        description: "Total count of orders placed by customer"
+        tests:
+          - not_null
+
+      - name: open_orders
+        description: "Count of currently open orders"
+        tests:
+          - not_null
+
+      - name: has_orders_flag
+        description: "Y/N flag indicating if customer has ever placed orders"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["Y", "N"]
+
+      - name: has_open_orders_flag
+        description: "Y/N flag indicating if customer has open orders"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["Y", "N"]
+
+      - name: value_segment
+        description: "Customer value segmentation based on account balance"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["High Value", "Medium Value", "Standard"]
+
+      - name: _loaded_at
+        description: "Audit timestamp - when record was loaded to RDV/BDV"
+
+      - name: _updated_at
+        description: "Audit timestamp - when record was updated in mart"
+        tests:
+          - not_null
+
+    tests:
+      - dbt_utils.expression_is_true:
+          expression:
+            "(has_orders_flag = 'Y' AND total_orders > 0) OR (has_orders_flag = 'N' AND total_orders
+            = 0)"
+          name: has_orders_flag_consistent_with_total_orders
+
+      - dbt_utils.expression_is_true:
+          expression:
+            "(has_open_orders_flag = 'Y' AND open_orders > 0) OR (has_open_orders_flag = 'N' AND
+            open_orders = 0)"
+          name: has_open_orders_flag_consistent_with_open_orders
+
+      - dbt_utils.expression_is_true:
+          expression: "open_orders <= total_orders"
+          name: open_orders_cannot_exceed_total_orders
+
+      - dbt_utils.expression_is_true:
+          expression:
+            "(value_segment = 'High Value' AND account_balance >= 5000) OR (value_segment = 'Medium
+            Value' AND account_balance >= 1000 AND account_balance < 5000) OR (value_segment =
+            'Standard' AND account_balance < 1000)"
+          name: value_segment_matches_account_balance_thresholds
+
+  - name: mart_dim_orders
+    description:
+      "Order dimension table sourced from Data Vault (BDV SAT_ORDER_CALCULATED). Contains order
+      attributes, status, date dimensions, and denormalized customer data. Replicates legacy
+      gold.dim_orders structure with 100% compatibility."
+    config:
+      alias: dim_orders
+    columns:
+      - name: order_key
+        description: "Primary key - Order business key"
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('hub_order')
+              field: order_key
+
+      - name: customer_key
+        description: "Foreign key to customer dimension"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('mart_dim_customers')
+              field: customer_key
+
+      - name: order_status
+        description: "Order status code (O/F/P)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["O", "F", "P"]
+
+      - name: total_price
+        description: "Total order amount"
+        tests:
+          - not_null
+
+      - name: order_date
+        description: "Date order was placed"
+        tests:
+          - not_null
+
+      - name: order_priority
+        description: "Order priority level"
+        tests:
+          - not_null
+
+      - name: clerk
+        description: "Clerk who processed the order"
+
+      - name: ship_priority
+        description: "Shipping priority code"
+
+      - name: order_comment
+        description: "Order notes and comments"
+
+      - name: customer_name
+        description: "Customer name (denormalized from customer dimension)"
+
+      - name: nation_key
+        description: "Customer nation key (denormalized from customer dimension)"
+
+      - name: value_segment
+        description: "Customer value segment (denormalized from customer dimension)"
+
+      - name: order_status_desc
+        description: "Order status description (Open/Fulfilled/Partial/Unknown)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["Open", "Fulfilled", "Partial", "Unknown"]
+
+      - name: order_year
+        description: "Year extracted from order_date"
+        tests:
+          - not_null
+
+      - name: order_quarter
+        description: "Quarter extracted from order_date (1-4)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4]
+
+      - name: order_month
+        description: "Month extracted from order_date (1-12)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+      - name: _loaded_at
+        description: "Audit timestamp - when record was loaded to RDV/BDV"
+
+      - name: _updated_at
+        description: "Audit timestamp - when record was updated in mart"
+        tests:
+          - not_null
+
+    tests:
+      - dbt_utils.expression_is_true:
+          expression:
+            "(order_status = 'O' AND order_status_desc = 'Open') OR (order_status = 'F' AND
+            order_status_desc = 'Fulfilled') OR (order_status = 'P' AND order_status_desc =
+            'Partial')"
+          name: order_status_desc_matches_order_status_code
+
+      - dbt_utils.expression_is_true:
+          expression: "order_year = extract(year from order_date)"
+          name: order_year_matches_order_date
+
+      - dbt_utils.expression_is_true:
+          expression: "order_quarter = extract(quarter from order_date)"
+          name: order_quarter_matches_order_date
+
+      - dbt_utils.expression_is_true:
+          expression: "order_month = extract(month from order_date)"
+          name: order_month_matches_order_date

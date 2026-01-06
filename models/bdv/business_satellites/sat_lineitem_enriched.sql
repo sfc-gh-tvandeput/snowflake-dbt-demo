@@ -22,7 +22,8 @@ WITH lineitem_base AS (
         p.PART_NAME,
         p.BRAND AS PART_BRAND,
         p.PART_TYPE,
-        p.PART_SIZE
+        p.PART_SIZE,
+        soc.ORDER_DATE
     FROM {{ ref('hub_lineitem') }} hl
     INNER JOIN {{ ref('sat_lineitem') }} li
         ON hl.LINEITEM_HK = li.LINEITEM_HK
@@ -32,9 +33,19 @@ WITH lineitem_base AS (
         ON llp.PART_HK = hp.PART_HK
     LEFT JOIN {{ ref('sat_product') }} p
         ON hp.PART_HK = p.PART_HK
+    LEFT JOIN {{ ref('link_lineitem_order') }} llo
+        ON hl.LINEITEM_HK = llo.LINEITEM_HK
+    LEFT JOIN {{ ref('hub_order') }} ho
+        ON llo.ORDER_HK = ho.ORDER_HK
+    LEFT JOIN {{ ref('sat_order_calculated') }} soc
+        ON ho.ORDER_HK = soc.ORDER_HK
     {% if is_incremental() %}
     WHERE hl.LOAD_DATE > (SELECT MAX(LOAD_DATE) FROM {{ this }})
     {% endif %}
+),
+
+fx_rates AS (
+    SELECT * FROM {{ ref('int_fx_rates__daily') }}
 ),
 
 lineitem_enriched AS (
@@ -50,18 +61,8 @@ lineitem_enriched AS (
         lb.QUANTITY * lb.EXTENDED_PRICE * (1 - lb.DISCOUNT) AS line_total_usd,
         lb.EXTENDED_PRICE * lb.DISCOUNT AS discount_amount,
         lb.EXTENDED_PRICE * (1 - lb.DISCOUNT) * lb.TAX AS tax_amount,
-        lb.QUANTITY AS L_QUANTITY,
-        lb.RETURN_FLAG AS L_RETURNFLAG,
-        lb.LINE_STATUS AS L_LINESTATUS,
-        lb.SHIP_DATE AS L_SHIPDATE,
-        lb.COMMIT_DATE AS L_COMMITDATE,
-        lb.RECEIPT_DATE AS L_RECEIPTDATE,
-        lb.SHIP_INSTRUCT AS L_SHIPINSTRUCT,
-        lb.SHIP_MODE AS L_SHIPMODE,
-        lb.PART_NAME,
-        lb.PART_BRAND,
-        lb.PART_TYPE,
-        lb.PART_SIZE,
+        COALESCE(fx.conversion_rate, 1.0) AS eur_conversion_rate,
+        (lb.EXTENDED_PRICE * (1 - lb.DISCOUNT) * (1 + lb.TAX)) * COALESCE(fx.conversion_rate, 1.0) AS total_price_eur,
         DATEDIFF(DAY, lb.COMMIT_DATE, lb.SHIP_DATE) AS days_early_late,
         CASE
             WHEN lb.SHIP_DATE <= lb.COMMIT_DATE THEN 'ON_TIME'
@@ -80,6 +81,10 @@ lineitem_enriched AS (
             ELSE 'UNKNOWN'
         END AS line_status_description
     FROM lineitem_base lb
+    LEFT JOIN fx_rates fx
+        ON fx.from_currency = 'USD'
+        AND fx.to_currency = 'EUR'
+        AND lb.ORDER_DATE BETWEEN fx.day_dt AND fx.end_date
 ),
 
 hashed_records AS (
@@ -91,6 +96,8 @@ hashed_records AS (
             'discount_amount',
             'tax_amount',
             'fx_rate_to_usd',
+            'eur_conversion_rate',
+            'total_price_eur',
             'COALESCE(days_early_late, 0)',
             'delivery_performance',
             'return_status',
@@ -111,18 +118,8 @@ SELECT
     line_total_usd,
     discount_amount,
     tax_amount,
-    L_QUANTITY,
-    L_RETURNFLAG,
-    L_LINESTATUS,
-    L_SHIPDATE,
-    L_COMMITDATE,
-    L_RECEIPTDATE,
-    L_SHIPINSTRUCT,
-    L_SHIPMODE,
-    PART_NAME,
-    PART_BRAND,
-    PART_TYPE,
-    PART_SIZE,
+    eur_conversion_rate,
+    total_price_eur,
     days_early_late,
     delivery_performance,
     return_status,

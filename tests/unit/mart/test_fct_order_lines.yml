@@ -1,0 +1,204 @@
+unit_tests:
+  - name: test_price_calculations_fct_order_lines
+    description: "Test that mart uses BDV calculated fields (net_price, total_price, FX conversion)"
+    model: mart_fct_order_lines
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('hub_lineitem')
+        rows:
+          - { lineitem_hk: "01", line_number: 1 }
+          - { lineitem_hk: "02", line_number: 1 }
+
+      - input: ref('sat_lineitem')
+        rows:
+          - {
+              lineitem_hk: "01",
+              quantity: 10,
+              extended_price: 1000.00,
+              discount: 0.10,
+              tax: 0.08,
+              return_flag: "N",
+              line_status: "O",
+              ship_date: "1995-01-15",
+              commit_date: "1995-01-20",
+              receipt_date: "1995-01-18",
+              ship_instruct: "DELIVER IN PERSON",
+              ship_mode: "TRUCK",
+              line_comment: "test",
+            }
+          - {
+              lineitem_hk: "02",
+              quantity: 5,
+              extended_price: 500.00,
+              discount: 0.00,
+              tax: 0.00,
+              return_flag: "R",
+              line_status: "F",
+              ship_date: "1995-02-10",
+              commit_date: "1995-02-15",
+              receipt_date: "1995-02-12",
+              ship_instruct: "NONE",
+              ship_mode: "AIR",
+              line_comment: "test",
+            }
+
+      - input: ref('sat_lineitem_enriched')
+        rows:
+          - {
+              lineitem_hk: "01",
+              net_price: 900.00,
+              total_price: 972.00,
+              eur_conversion_rate: 0.85,
+              total_price_eur: 826.20,
+            }
+          - {
+              lineitem_hk: "02",
+              net_price: 500.00,
+              total_price: 500.00,
+              eur_conversion_rate: 0.85,
+              total_price_eur: 425.00,
+            }
+
+      - input: ref('link_lineitem_order')
+        rows:
+          - { lineitem_hk: "01", order_hk: "A1" }
+          - { lineitem_hk: "02", order_hk: "A2" }
+          - { lineitem_hk: "03", order_hk: "A3" }
+
+      - input: ref('hub_order')
+        rows:
+          - { order_hk: "A1", order_key: 100 }
+          - { order_hk: "A2", order_key: 200 }
+          - { order_hk: "A3", order_key: 300 }
+
+      - input: ref('sat_order_calculated')
+        rows:
+          - { order_hk: "A1", order_date: "1995-01-10", order_status_desc: "Open" }
+          - { order_hk: "A2", order_date: "1995-02-05", order_status_desc: "Fulfilled" }
+
+      - input: ref('link_lineitem_product')
+        rows: []
+
+      - input: ref('hub_product')
+        rows: []
+
+      - input: ref('link_lineitem_supplier')
+        rows: []
+
+      - input: ref('hub_supplier')
+        rows: []
+
+      - input: ref('link_order_customer')
+        rows: []
+
+      - input: ref('hub_customer')
+        rows: []
+
+    expect:
+      rows:
+        - {
+            order_key: 100,
+            line_number: 1,
+            quantity: 10,
+            extended_price: 1000.00,
+            discount: 0.10,
+            tax: 0.08,
+            discounted_price: 900.00,
+            final_price: 972.00,
+            eur_conversion_rate: 0.85,
+            final_price_eur: 826.20,
+          }
+        - {
+            order_key: 200,
+            line_number: 1,
+            quantity: 5,
+            extended_price: 500.00,
+            discount: 0.00,
+            tax: 0.00,
+            discounted_price: 500.00,
+            final_price: 500.00,
+            eur_conversion_rate: 0.85,
+            final_price_eur: 425.00,
+          }
+
+  - name: test_fx_conversion_fallback_to_default
+    description: "Test that FX conversion defaults to 1.0 when no rate is found (via BDV)"
+    model: mart_fct_order_lines
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('hub_lineitem')
+        rows:
+          - { lineitem_hk: "01", line_number: 1 }
+
+      - input: ref('sat_lineitem')
+        rows:
+          - {
+              lineitem_hk: "01",
+              quantity: 10,
+              extended_price: 1000.00,
+              discount: 0.10,
+              tax: 0.08,
+              return_flag: "N",
+              line_status: "O",
+              ship_date: "2025-01-15",
+              commit_date: "2025-01-20",
+              receipt_date: "2025-01-18",
+              ship_instruct: "DELIVER IN PERSON",
+              ship_mode: "TRUCK",
+              line_comment: "test",
+            }
+
+      - input: ref('sat_lineitem_enriched')
+        rows:
+          - {
+              lineitem_hk: "01",
+              net_price: 900.00,
+              total_price: 972.00,
+              eur_conversion_rate: 1.0,
+              total_price_eur: 972.00,
+            }
+
+      - input: ref('link_lineitem_order')
+        rows:
+          - { lineitem_hk: "01", order_hk: "A1" }
+
+      - input: ref('hub_order')
+        rows:
+          - { order_hk: "A1", order_key: 100 }
+
+      - input: ref('sat_order_calculated')
+        rows:
+          - { order_hk: "A1", order_date: "2025-01-10", order_status_desc: "Open" }
+
+      - input: ref('link_lineitem_product')
+        rows: []
+
+      - input: ref('hub_product')
+        rows: []
+
+      - input: ref('link_lineitem_supplier')
+        rows: []
+
+      - input: ref('hub_supplier')
+        rows: []
+
+      - input: ref('link_order_customer')
+        rows: []
+
+      - input: ref('hub_customer')
+        rows: []
+
+    expect:
+      rows:
+        - {
+            order_key: 100,
+            line_number: 1,
+            discounted_price: 900.00,
+            final_price: 972.00,
+            eur_conversion_rate: 1.0,
+            final_price_eur: 972.00,
+          }

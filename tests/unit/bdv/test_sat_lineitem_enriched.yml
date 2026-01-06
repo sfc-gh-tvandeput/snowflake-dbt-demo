@@ -3,7 +3,8 @@ version: 2
 unit_tests:
   - name: test_price_calculations
     model: sat_lineitem_enriched
-    description: "Test net_price, total_price, discount_amount, and tax_amount calculations"
+    description:
+      "Test net_price, total_price, discount_amount, tax_amount, and FX conversion calculations"
     overrides:
       macros:
         is_incremental: false
@@ -24,6 +25,30 @@ unit_tests:
         rows: []
       - input: ref('sat_product')
         rows: []
+      - input: ref('link_lineitem_order')
+        rows:
+          - { lineitem_hk: "01", order_hk: "A1" }
+          - { lineitem_hk: "02", order_hk: "A2" }
+          - { lineitem_hk: "03", order_hk: "A3" }
+      - input: ref('hub_order')
+        rows:
+          - { order_hk: "A1" }
+          - { order_hk: "A2" }
+          - { order_hk: "A3" }
+      - input: ref('sat_order_calculated')
+        rows:
+          - { order_hk: "A1", order_date: "1995-01-15" }
+          - { order_hk: "A2", order_date: "1995-02-10" }
+          - { order_hk: "A3", order_date: "1995-03-05" }
+      - input: ref('int_fx_rates__daily')
+        rows:
+          - {
+              from_currency: "USD",
+              to_currency: "EUR",
+              day_dt: "1995-01-01",
+              end_date: "1995-12-31",
+              conversion_rate: 0.85,
+            }
     expect:
       rows:
         - {
@@ -32,6 +57,7 @@ unit_tests:
             total_price: 1026.00,
             discount_amount: 50.00,
             tax_amount: 76.00,
+            eur_conversion_rate: 0.85,
           }
         - {
             original_price: 2000.00,
@@ -39,6 +65,7 @@ unit_tests:
             total_price: 1944.00,
             discount_amount: 200.00,
             tax_amount: 144.00,
+            eur_conversion_rate: 0.85,
           }
         - {
             original_price: 3000.00,
@@ -46,6 +73,7 @@ unit_tests:
             total_price: 3240.00,
             discount_amount: 0.00,
             tax_amount: 240.00,
+            eur_conversion_rate: 0.85,
           }
 
   - name: test_delivery_performance_classification
@@ -105,6 +133,14 @@ unit_tests:
         rows: []
       - input: ref('sat_product')
         rows: []
+      - input: ref('link_lineitem_order')
+        rows: []
+      - input: ref('hub_order')
+        rows: []
+      - input: ref('sat_order_calculated')
+        rows: []
+      - input: ref('int_fx_rates__daily')
+        rows: []
     expect:
       rows:
         - { days_early_late: -2, delivery_performance: ON_TIME }
@@ -159,11 +195,19 @@ unit_tests:
         rows: []
       - input: ref('sat_product')
         rows: []
+      - input: ref('link_lineitem_order')
+        rows: []
+      - input: ref('hub_order')
+        rows: []
+      - input: ref('sat_order_calculated')
+        rows: []
+      - input: ref('int_fx_rates__daily')
+        rows: []
     expect:
       rows:
-        - { l_returnflag: R, return_status: RETURNED, line_status_description: FULFILLED }
-        - { l_returnflag: A, return_status: ACCEPTED, line_status_description: FULFILLED }
-        - { l_returnflag: N, return_status: NOT_RETURNED, line_status_description: OUTSTANDING }
+        - { return_status: RETURNED, line_status_description: FULFILLED }
+        - { return_status: ACCEPTED, line_status_description: FULFILLED }
+        - { return_status: NOT_RETURNED, line_status_description: OUTSTANDING }
 
   - name: test_line_status_description_mapping
     model: sat_lineitem_enriched
@@ -200,7 +244,15 @@ unit_tests:
         rows: []
       - input: ref('sat_product')
         rows: []
+      - input: ref('link_lineitem_order')
+        rows: []
+      - input: ref('hub_order')
+        rows: []
+      - input: ref('sat_order_calculated')
+        rows: []
+      - input: ref('int_fx_rates__daily')
+        rows: []
     expect:
       rows:
-        - { l_linestatus: O, line_status_description: OUTSTANDING }
-        - { l_linestatus: F, line_status_description: FULFILLED }
+        - { line_status_description: OUTSTANDING }
+        - { line_status_description: FULFILLED }
